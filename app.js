@@ -29,43 +29,71 @@ function calculate(d) {
       return { drop, value, equity: value - d.investmentDebt, net: assets - debt - investment + value };
     }) };
 }
-function setText(id, text, negative = false) {
+function highRisk(value, warning, danger) {
+  return value === null ? '' : value > danger ? 'danger' : value > warning ? 'caution' : '';
+}
+function statusLabel(status) {
+  return status === 'danger' ? '需留意' : status === 'caution' ? '注意' : '';
+}
+function setText(id, text, status = '') {
   const element = document.getElementById(id);
   element.textContent = text;
-  element.classList.toggle('negative', negative);
+  element.classList.remove('danger', 'caution');
+  if (status) element.classList.add(status);
+  const card = element.closest('.kpi');
+  if (card) {
+    card.querySelector('.status-badge')?.remove();
+    if (status) {
+      const badge = document.createElement('span');
+      badge.className = `status-badge ${status}`;
+      badge.textContent = statusLabel(status);
+      card.append(badge);
+    }
+  }
 }
 function renderRows(id, rows) {
   const target = document.getElementById(id);
-  target.replaceChildren(...rows.map(([label, value, negative]) => {
+  target.replaceChildren(...rows.map(([label, value, status]) => {
     const row = document.createElement('div');
     const term = document.createElement('dt');
     const detail = document.createElement('dd');
     term.textContent = label; detail.textContent = value;
-    if (negative) detail.className = 'negative';
+    if (status) {
+      detail.className = status;
+      const badge = document.createElement('small');
+      badge.className = 'row-status'; badge.textContent = statusLabel(status);
+      detail.append(badge);
+    }
     row.append(term, detail); return row;
   }));
 }
 function render(d) {
   const c = calculate(d);
-  setText('netWorth', money(c.net), c.net < 0);
-  setText('totalAssets', money(c.assets)); setText('totalDebt', money(c.debt));
-  setText('marketLeverage', multiple(c.leverage)); setText('assetInvestment', money(c.investment));
+  const runwayRisk = c.runway === null ? '' : c.runway < 3 ? 'danger' : c.runway < 6 ? 'caution' : '';
+  const leverageRisk = c.equity <= 0 && (c.investment > 0 || d.investmentDebt > 0) ? 'danger' : highRisk(c.leverage, 1.5, 2);
+  const debtRisk = c.assets === 0 && c.debt > 0 ? 'danger' : highRisk(c.debtRatio, 0.5, 0.7);
+  const paymentRisk = d.income === 0 && (d.mortgagePayment + d.loanPayment) > 0 ? 'danger' : highRisk(c.paymentRatio, 0.3, 0.5);
+  setText('netWorth', money(c.net), c.net < 0 ? 'danger' : '');
+  setText('financialAssets', money(c.financial));
+  setText('cashRunway', c.runway === null ? '—' : `${decimal.format(c.runway)} 個月`, runwayRisk);
+  setText('marketLeverage', multiple(c.leverage), leverageRisk);
+  setText('assetInvestment', money(c.investment));
   renderRows('health', [
-    ['金融資產', money(c.financial)], ['負債 / 資產比例', percent(c.debtRatio)],
-    ['每月債務還款 / 月收入', percent(c.paymentRatio)],
-    ['現金可支撐月數', c.runway === null ? '—（無支出）' : `${decimal.format(c.runway)} 個月`],
-    ['每月結餘（含固定投資）', money(c.balance), c.balance < 0]
+    ['總資產', money(c.assets)], ['總負債', money(c.debt)],
+    ['負債 / 資產比例', percent(c.debtRatio), debtRisk],
+    ['每月債務還款 / 月收入', percent(c.paymentRatio), paymentRisk],
+    ['每月結餘（含固定投資）', money(c.balance), c.balance < 0 ? 'danger' : '']
   ]);
   renderRows('investment', [
     ['投資總市值', money(c.investment)], ['投資等效市場曝險', money(c.exposure)],
     ['投資內含曝險倍數', multiple(c.embedded)], ['投資用途負債 / 投資市值', percent(c.investmentDebtRatio)],
-    ['扣除投資負債後的淨值', money(c.equity), c.equity < 0], ['綜合市場槓桿', multiple(c.leverage)]
+    ['扣除投資負債後的淨值', money(c.equity), c.equity < 0 ? 'danger' : '']
   ]);
   document.getElementById('scenarios').replaceChildren(...c.scenarios.map(scenario => {
     const row = document.createElement('tr');
     [`-${scenario.drop}%`, money(scenario.value), money(scenario.equity), money(scenario.net)].forEach((text, index) => {
       const cell = document.createElement('td'); cell.textContent = text;
-      if ((index === 2 && scenario.equity < 0) || (index === 3 && scenario.net < 0)) cell.className = 'negative';
+      if ((index === 2 && scenario.equity < 0) || (index === 3 && scenario.net < 0)) cell.className = 'danger';
       row.append(cell);
     }); return row;
   }));
