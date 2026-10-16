@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><link rel="icon" href="data:,"><title>個人財務儀表板</title><style>:root{color-scheme:light;--bg:#F4F7F5;--card:#FFFFFF;--text:#24332D;--muted:#718078;--primary:#5E8F7A;--soft:#E8F1EC;--border:#D9E4DE;--yellow:#C58B2A;--red:#C86464;--positive:#4F8A6C;--input:#FAFCFB;--yellow-bg:#FBF4E6;--red-bg:#FCF0EF;--ring:#5e8f7a33;font-family:Inter,"Noto Sans TC",system-ui,-apple-system,sans-serif;font-synthesis:none;background:var(--bg);color:var(--text)}
+<html lang="zh-Hant" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><link rel="icon" href="data:,"><title>個人財務儀表板</title><style>:root{color-scheme:light;--bg:#F4F7F5;--card:#FFFFFF;--text:#24332D;--muted:#718078;--primary:#5E8F7A;--soft:#E8F1EC;--border:#D9E4DE;--yellow:#C58B2A;--red:#C86464;--positive:#4F8A6C;--input:#FAFCFB;--yellow-bg:#FBF4E6;--red-bg:#FCF0EF;--ring:#5e8f7a33;font-family:Inter,"Noto Sans TC",system-ui,-apple-system,sans-serif;font-synthesis:none;background:var(--bg);color:var(--text)}
 :root[data-theme="dark"]{color-scheme:dark;--bg:#14201B;--card:#1E2E26;--text:#E0EAE3;--muted:#A3B5A9;--primary:#9BBBAB;--soft:#293F32;--border:#3A5043;--yellow:#DFB66D;--red:#E19791;--positive:#92BCA0;--input:#19271F;--yellow-bg:#3D3525;--red-bg:#402C2A;--ring:#9bbbab33}
 *{box-sizing:border-box}body{margin:0}main{max-width:1320px;margin:auto;padding:40px 32px}header{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:30px}p{line-height:1.8}h1{font-size:30px;letter-spacing:.6px;margin:10px 0}h2{font-size:18px;margin:0}.eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--primary)}.subtitle{color:var(--muted);font-size:14px;margin:0}.save-info{display:flex;flex-direction:column;align-items:flex-end;gap:8px}.save-info small{font-size:11px}#save-status{font-size:12px;color:var(--positive);border:1px solid var(--border);background:var(--soft);padding:8px 12px;border-radius:20px}#saved-at,#data-message{overflow-wrap:anywhere}.privacy-note{font-size:12px;color:var(--muted);line-height:1.8;margin:0 0 26px}
 button,.file-button{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font:inherit;font-size:12px;color:var(--text);cursor:pointer}button:hover,.file-button:hover{background:var(--soft)}button:active{transform:translateY(1px)}button:focus-visible,summary:focus-visible,.file-button:focus-within{outline:3px solid var(--ring);outline-offset:2px}button:disabled{opacity:.5;cursor:wait}.theme-switch{display:flex;border:1px solid var(--border);padding:3px;gap:3px;border-radius:10px;background:var(--soft)}.theme-switch button{padding:7px 12px;border:0;background:transparent;color:var(--muted)}.theme-switch button[aria-pressed="true"]{background:var(--card);color:var(--text);box-shadow:0 1px 4px #00000009}
@@ -12,68 +12,155 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:30px 0 0}[hid
 @media(max-width:1000px){.kpi{padding:20px 16px}.kpi strong{font-size:23px}}
 @media(max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.inputs form,.goal-inputs,.scenario-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:22px}.section-heading{flex-wrap:wrap}dd{font-size:16px}.goal-results{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){main{padding:24px 16px}header{align-items:flex-start;flex-direction:column;gap:16px}h1{font-size:25px}.save-info{align-items:flex-start}.theme-switch button{min-height:36px}.kpis{gap:10px}.kpi{padding:17px 13px;gap:11px;min-height:160px}.kpi strong{font-size:20px}.results{grid-template-columns:1fr;gap:20px}.layout{gap:20px}.inputs form,.settings-grid{grid-template-columns:1fr}input{font-size:16px}.goal-results{gap:12px}.goal-results dd{font-size:18px}.toolbar{align-items:flex-start}.section-heading>span{font-size:9px}dt{font-size:12px}.utility{padding:20px}.explanation-brief{-webkit-line-clamp:3}.kpi .explanation-detail{max-height:130px}.reason-accordion>summary{padding:9px 7px;font-size:10px}.status-badge{font-size:9px;padding:3px 5px}.share-toolbar{gap:14px}.privacy-note{font-size:11px}}
+/* V3: focused setup, with details kept below the existing dashboard. */
+.primary-button{background:var(--primary);color:var(--card);border-color:var(--primary);font-weight:600}.primary-button:hover{background:var(--positive);color:var(--card)}.welcome{max-width:760px;margin:32px auto 40px;padding:40px}.welcome h2{font-size:28px}.welcome p{color:var(--muted)}.demo-banner{margin-bottom:24px;display:flex;justify-content:space-between;gap:16px;align-items:center}.floating-edit{display:none}.required-return{border-top:1px solid var(--border);padding-top:16px;margin-top:12px;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}.required-return>span{font-size:13px;color:var(--muted)}.required-return strong{font-size:22px}.required-return .hint{width:100%;margin:0}.allocation-home{grid-column:1/-1}.allocation-bar{display:flex;height:12px;overflow:hidden;border-radius:12px;background:var(--soft);margin:20px 0 12px}.asset-0{background:var(--primary)}.asset-1{background:#A8BAAC}.asset-2{background:#D4C7A2}.allocation-legend{font-size:13px;line-height:1.8}.edit-step{margin-bottom:12px}.field-level{font-size:10px;color:var(--muted);font-weight:400;background:var(--soft);border-radius:4px;padding:2px 5px;white-space:nowrap}.field-helper{display:block;line-height:1.7;margin-top:6px;font-size:11px;color:var(--muted)}h3{font-size:16px;font-weight:600;margin:24px 0 16px}h4{font-size:14px;margin:0}.wizard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 22px}.wizard-grid label{min-width:0}.buffer-options{display:grid;grid-template-columns:1fr 1fr;gap:15px}.debt-row{padding:20px;border:1px solid var(--border);border-radius:12px;margin:18px 0;background:var(--input)}.debt-row input,.debt-row select{background:var(--card)}.debt-row select{display:block;width:100%;margin-top:7px;padding:11px}.inline-info{font-size:12px;line-height:1.8;margin-top:6px;color:var(--muted)}.inline-info summary{cursor:pointer;color:var(--primary);font-size:12px;list-style:none;display:inline-block;padding:4px 7px;border:1px solid var(--border);border-radius:6px}.inline-info p{margin:8px 0;max-width:600px}.inline-info[open]{display:block}.inline-info summary:hover{background:var(--soft)}
+#wizard{padding:0;width:min(980px,95vw);max-width:100vw;height:min(900px,92dvh);max-height:100dvh;border:1px solid var(--border);border-radius:18px;background:var(--card);color:var(--text);overflow:hidden}#wizard[open]{display:flex;flex-direction:column}#wizard::backdrop{background:#11271b66;backdrop-filter:blur(3px)}.wizard-header{padding:22px 30px;margin:0;flex-shrink:0}.wizard-header .eyebrow{margin:0 0 8px}.wizard-header button{white-space:nowrap}.wizard-body{overflow-y:auto;padding:0 30px 24px;flex:1;overscroll-behavior:contain}.wizard-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 30px;border-top:1px solid var(--border);flex-shrink:0;background:var(--card)}.wizard-footer>div{display:flex;gap:10px}.wizard-footer>span{font-size:11px;color:var(--muted)}.stepper{display:flex;gap:8px;padding:0 30px 14px;border-bottom:1px solid var(--border);flex-shrink:0}.stepper span{flex:1;font-size:12px;padding:10px 8px;border-radius:7px;color:var(--muted);background:var(--input);text-align:center}.stepper .active{color:var(--primary);background:var(--soft);font-weight:600}
+@media(max-width:680px){.welcome{padding:26px;margin:16px 0}.welcome h2{font-size:24px}.floating-edit{display:block;position:fixed;right:16px;bottom:max(16px,env(safe-area-inset-bottom));z-index:5;box-shadow:0 3px 14px #24332d22;background:var(--card);border-color:var(--primary);font-size:12px}body:has(#wizard[open]) .floating-edit{display:none}.demo-banner{align-items:flex-start;flex-direction:column}main{padding-bottom:80px}#wizard{width:100vw;height:100dvh;max-height:100dvh;max-width:100vw;margin:0;border:0;border-radius:0;inset:0}.wizard-header{flex-direction:row;align-items:center;gap:12px;padding:18px 16px}.wizard-header h2{font-size:20px}.wizard-header button{font-size:11px;padding:9px}.wizard-body{padding:0 16px 22px}.wizard-grid{grid-template-columns:1fr;gap:4px}.wizard-footer{padding:14px 16px max(14px,env(safe-area-inset-bottom));align-items:flex-start;flex-direction:column;gap:10px}.wizard-footer>div{width:100%;justify-content:space-between}.wizard-footer button{min-height:42px}.stepper{padding:0 16px 14px;gap:6px}.stepper span{font-size:10px;padding:10px 4px}.buffer-options{grid-template-columns:1fr}.debt-row{padding:16px}.allocation-home .section-heading{gap:8px}.allocation-legend{font-size:12px}}
 </style></head>
 <body><main>
-<header><div><p class="eyebrow">MY FINANCE · 我的財務全貌</p><h1>個人財務儀表板</h1><p class="subtitle">掌握現在，為未來留一點餘裕。</p></div><div class="save-info"><div class="theme-switch" role="group" aria-label="外觀模式"><button type="button" data-theme-choice="light" aria-pressed="true">☀ Light</button><button type="button" data-theme-choice="dark" aria-pressed="false">☾ Dark</button></div><small id="theme-status" role="status" hidden></small><span id="save-status" role="status">尚未輸入資料</span><small id="saved-at">最後儲存：—</small></div></header><p class="privacy-note">所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。<br>清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。</p><p id="storage-warning" class="warning" role="alert" hidden></p>
-<section class="kpis" aria-label="財務摘要">
+<header><div><p class="eyebrow">MY FINANCE · 我的財務全貌</p><h1>個人財務儀表板</h1><p class="subtitle">掌握現在，為未來留一點餘裕。</p></div><div class="save-info"><button type="button" id="edit-finances" class="primary-button">編輯財務資料</button><div class="theme-switch" role="group" aria-label="外觀模式"><button type="button" data-theme-choice="light" aria-pressed="true">☀ Light</button><button type="button" data-theme-choice="dark" aria-pressed="false">☾ Dark</button></div><small id="theme-status" role="status" hidden></small><span id="save-status" role="status">尚未輸入資料</span><small id="saved-at">最後儲存：—</small></div></header><p class="privacy-note">所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。<br>清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。</p><p id="storage-warning" class="warning" role="alert" hidden></p>
+<section id="welcome" class="panel welcome" hidden><p class="eyebrow">PERSONAL FINANCE · V3</p><h2>建立你的財務全貌</h2><p>約 2～3 分鐘完成基本設定。<br>填入資產、負債與每月現金流後，即可看到你的淨資產、現金緩衝、債務壓力、投資槓桿與財務目標。</p><div class="toolbar"><button id="start-setup" type="button" class="primary-button">開始設定</button><button id="demo-start" type="button">先用範例資料看看</button></div><p class="hint">已有備份？可在下方「資料備份」匯入，不需重新填寫。</p></section>
+<div id="demo-banner" class="note demo-banner" hidden>目前為範例資料，修改不會存成正式資料。<button id="demo-exit" type="button">開始輸入我的資料</button></div>
+<div id="dashboard"><section class="kpis" aria-label="財務摘要">
 <article class="kpi"><span>淨資產</span><strong id="netWorth">—</strong><small>總資產扣除所有負債</small></article>
 <article class="kpi"><span>金融資產</span><strong id="financialAssets">—</strong><small>現金與股票 / ETF 市值</small></article>
 <article class="kpi"><span>現金緩衝月數</span><strong id="cashRunway">—</strong><small>可支應生活費與債務還款</small></article>
 <article class="kpi"><span>綜合市場槓桿</span><strong id="marketLeverage">—</strong><small>等效曝險 ÷ 投資淨值</small></article>
 </section>
 <p id="month-comparison" class="hint" hidden></p><div class="share-toolbar"><button id="generate-summary" type="button">產出財務摘要圖</button><label class="inline-check"><input id="hide-amounts" type="checkbox">分享版隱藏金額，只顯示比例</label></div><p id="image-status" role="status" class="hint"></p><div id="image-result" hidden><a id="download-summary" download>下載 PNG 圖片</a><details class="subsection"><summary>預覽摘要圖</summary><img id="summary-preview" alt="本機產生的財務摘要圖"></details></div>
-<div class="layout"><details class="panel inputs"><summary>編輯財務資料 <span>點擊展開 / 收合</span></summary><div class="section-heading"><h2>輸入財務資料</h2><span>新台幣 TWD</span></div><p class="hint">輸入後即時計算、自動儲存。空白視為 0。</p><form id="finance-form" novalidate>
-<fieldset><legend>01 / 資產</legend>
-<label>現金<input name="cash" type="number" min="0" step="any" inputmode="decimal"></label>
-<div class="readonly">股票 / ETF 市值<output id="assetInvestment">—</output><small>由下方兩類投資自動加總</small></div>
-<label>房屋目前估值<input name="home" type="number" min="0" step="any" inputmode="decimal"></label><label>其他資產<input name="other" type="number" min="0" step="any" inputmode="decimal"></label>
-</fieldset><fieldset><legend>02 / 負債</legend>
-<label>房貸餘額<input name="mortgage" type="number" min="0" step="any" inputmode="decimal"></label><label>信貸餘額<input name="loan" type="number" min="0" step="any" inputmode="decimal"></label><label>其中用來投資的信貸<input name="investmentDebt" type="number" min="0" step="any" inputmode="decimal" aria-describedby="debt-hint"></label><small id="debt-hint">這是信貸的一部分，不會再重複計入負債。</small>
-</fieldset><fieldset><legend>03 / 現金流</legend>
-<label>家庭年收入<input name="income" type="number" min="0" step="any" inputmode="decimal"></label><label>每月生活支出<input name="living" type="number" min="0" step="any" inputmode="decimal"></label><label>每月房貸還款<input name="mortgagePayment" type="number" min="0" step="any" inputmode="decimal"></label><label>每月信貸還款<input name="loanPayment" type="number" min="0" step="any" inputmode="decimal"></label><small>每月固定投資金額與「財務目標」的每月固定投入共用。</small>
-</fieldset><fieldset><legend>04 / 投資</legend>
-<label>一般股票 / ETF 市值<input name="regular" type="number" min="0" step="any" inputmode="decimal"></label><label>槓桿 ETF 市值<input name="leveraged" type="number" min="0" step="any" inputmode="decimal"></label><label>槓桿 ETF 倍率<input name="multiplier" type="number" min="1" step="any" inputmode="decimal"></label><small>例如 2 代表兩倍曝險；一般股票以 1 倍估算。</small>
-</fieldset></form><p id="validation" role="alert" class="warning" hidden></p><p class="hint">所有資料保存在此裝置瀏覽器。若要換裝置，請先匯出備份，再到新裝置匯入。</p></details>
-<div class="results"><section class="panel goals" aria-labelledby="goals-title"><div class="section-heading"><h2 id="goals-title">財務目標</h2><span>FINANCIAL GOALS</span></div>
+<div class="layout"><div class="results"><section class="panel goals" aria-labelledby="goals-title"><div class="section-heading"><h2 id="goals-title">財務目標</h2><span>FINANCIAL GOALS</span></div>
 <p class="hint">從目前金融資產出發，看看距離理想生活還有多遠。</p>
-<form id="goal-form" novalidate class="goal-inputs">
-<label>目前年齡<input name="currentAge" type="number" min="0" max="120" step="1" inputmode="numeric"></label>
-<label>目標年齡<input name="targetAge" type="number" min="0" max="120" step="1" inputmode="numeric"></label>
-<label>目標金融資產（NT$）<input name="targetAssets" type="number" min="0" step="any" inputmode="decimal"></label>
-<label>每月固定投入（NT$）<input name="monthlyInvestment" type="number" min="0" step="any" inputmode="decimal" aria-describedby="goal-assumptions"></label>
-<label>預期年化報酬率（%）<input name="annualReturn" type="number" min="-99" max="100" step="any" inputmode="decimal"></label>
-</form><p id="goal-validation" class="warning" role="alert" hidden></p>
-<dl id="goal-results" class="goal-results"></dl>
+<button type="button" class="edit-step" data-open-step="1">調整投資與目標</button><p id="goal-validation" class="warning" role="alert" hidden></p>
+<dl id="goal-results" class="goal-results"></dl><div class="required-return"><span>達標所需年化報酬率</span><strong id="required-return">—</strong><p id="required-return-note" class="hint"></p></div>
 <details class="subsection"><summary>比較年化報酬情境</summary><div id="return-scenarios" class="scenario-grid"></div><p class="hint">保守 5%、基準 8%、積極 12% 與上方自訂報酬率，皆使用相同起始金融資產與每月投入。</p></details>
 <p id="goal-assumptions" class="note">以目前金融資產（現金 + 股票 / ETF）為起點，假設全部資金適用相同報酬率，每月底投入並按月複利；月報酬率 = (1 + 年化報酬率) 的 1/12 次方 − 1。每月固定投入也用於現金流結餘，不會重複扣款。不含通膨、稅費與資產提領，報酬為假設而非保證。年齡以整歲計；目標年齡等於目前年齡時，沒有後續投入期間。</p></section>
-<section class="panel"><div class="section-heading"><h2>財務體質</h2><span>FINANCIAL HEALTH</span></div><dl id="health"></dl><p class="note">現金支撐月數只計生活費與債務還款，不含固定投資。每月結餘已扣除固定投資。</p></section>
+<section class="panel allocation-home"><div class="section-heading"><h2>目前配置 vs 目標配置</h2><button type="button" data-open-step="2">設定目標配置</button></div><div id="allocation-current"></div><p id="allocation-target" class="hint"></p><p class="hint">投資池包含投資預備金；該筆現金只計入資產一次。</p></section><section class="panel"><div class="section-heading"><h2>財務體質</h2><span>FINANCIAL HEALTH</span></div><dl id="health"></dl><p class="note">現金支撐月數只計生活費與債務還款，不含固定投資。每月結餘已扣除固定投資。</p></section>
 <section class="panel"><div class="section-heading"><h2>投資槓桿</h2><span>MARKET EXPOSURE</span></div><dl id="investment"></dl><p class="note">等效曝險 = 一般投資市值 + 槓桿 ETF 市值 × 倍率。投資淨值小於或等於 0 時，綜合槓桿不具有效意義。</p></section>
-<section class="panel stress"><div class="section-heading"><h2>市場壓力測試</h2><span>STRESS TEST</span></div><p class="hint">如果大盤下跌，資產可能如何變化？</p><p id="break-even" class="note"></p><div class="table-scroll"><table><thead><tr><th scope="col">大盤跌幅</th><th scope="col">投資市值</th><th scope="col">投資淨值</th><th scope="col">整體淨資產</th></tr></thead><tbody id="scenarios"></tbody></table></div><p class="note">簡化線性情境：一般投資隨大盤變動，槓桿 ETF 依倍率估算，單類市值最低為 0。房屋、現金、其他資產與負債維持不變。此估算不代表槓桿 ETF 長期實際報酬，未計每日重設、波動耗損、利息與交易成本。</p></section></div></div><details class="panel utility" id="history-panel"><summary>每月財務快照與趨勢</summary>
+<section class="panel stress"><div class="section-heading"><h2>市場壓力測試</h2><span>STRESS TEST</span></div><p class="hint">如果大盤下跌，資產可能如何變化？</p><p id="break-even" class="note"></p><div class="table-scroll"><table><thead><tr><th scope="col">大盤跌幅</th><th scope="col">投資市值</th><th scope="col">投資淨值</th><th scope="col">整體淨資產</th></tr></thead><tbody id="scenarios"></tbody></table></div><p class="note">簡化線性情境：一般投資隨大盤變動，槓桿 ETF 依倍率估算，單類市值最低為 0。房屋、現金、其他資產與負債維持不變。此估算不代表槓桿 ETF 長期實際報酬，未計每日重設、波動耗損、利息與交易成本。</p></section></div></div><details class="panel utility" id="analysis-panel"><summary>詳細分析：現金、負債與再平衡</summary><h3>現金分類</h3><dl id="cash-analysis"></dl><h3>負債摘要</h3><dl id="debt-analysis"></dl><p class="hint">以目前本金簡化估算，實際利息會隨本金下降而改變。</p><h3>只靠新增資金調整</h3><p id="rebalance-note"></p><dl id="rebalance-additions"></dl><h3>本月新增資金配置參考</h3><dl id="monthly-allocation"></dl><p class="hint">此為依你設定的目標配置所做的數學再平衡參考，不代表投資建議。</p></details>
+<details class="panel utility" id="completeness-panel"><summary>資料完整度</summary><div id="completeness"></div></details>
+<details class="panel utility" id="history-panel"><summary>每月財務快照與趨勢</summary>
 <p class="hint">每月手動記錄一次；同月份重存會先要求確認。快照記錄當時數值，不隨目前輸入改變。</p>
 <div class="toolbar"><label>快照日期<input id="snapshot-date" type="date"></label><button id="save-snapshot" type="button">儲存本月快照</button><label>趨勢指標<select id="chart-metric"><option value="net">淨資產</option><option value="financial">金融資產</option><option value="investment">投資市值</option><option value="debt">總負債</option><option value="leverage">綜合市場槓桿</option></select></label></div>
 <div id="history-chart"></div><div class="table-scroll"><table><thead><tr><th>日期</th><th>淨資產</th><th>金融資產</th><th>投資市值</th><th>總負債</th><th>綜合槓桿</th><th>操作</th></tr></thead><tbody id="snapshot-rows"></tbody></table></div></details>
-<details class="panel utility"><summary>警戒線與資料備份</summary>
-<form id="settings-form" novalidate class="settings-grid">
-<label>最低現金緩衝（月）<input name="minRunway" type="number" min="0.1" max="120" step="any" value="6"></label>
-<label>最高債務月付比（%）<input name="maxPaymentRatio" type="number" min="0.1" max="100" step="any" value="40"></label>
-<label>最高綜合市場槓桿（x）<input name="maxLeverage" type="number" min="0.1" max="100" step="any" value="2"></label>
-</form><p class="hint">現金低於最低門檻、還款比或槓桿高於最高門檻為紅色；現金在門檻至 1.2 倍、還款比或槓桿在門檻的 80% 至 100% 為黃色。零分母不強行評級，但有債務無收入、投資淨值不大於零等狀況仍提醒。設定僅供個人參考。</p>
+</div><details class="panel utility"><summary>資料備份</summary>
+<p class="hint">現金低於最低門檻、還款比或槓桿高於最高門檻為紅色；現金在門檻至 1.2 倍、還款比或槓桿在門檻的 80% 至 100% 為黃色。零分母不強行評級，但有債務無收入、投資淨值不大於零等狀況仍提醒。設定僅供個人參考。</p>
 <div class="toolbar"><button id="export-data" type="button">匯出備份（JSON）</button><label class="file-button">匯入備份（JSON）<input id="import-data" type="file" accept=".json,application/json"></label><button id="clear-data" type="button">清除本機資料</button></div>
 <p class="hint">JSON 含個人財務資料，請妥善保存。匯入會先檢查格式並要求確認。備份包含財務輸入、目標、警戒線、快照與未完成輸入。</p><p id="data-message" role="status"></p></details>
 <footer>讓數字幫助思考。此工具為簡化估算，不構成投資建議。</footer>
-</main><script>'use strict';
+</main><button id="mobile-edit" type="button" class="floating-edit">✎ 更新資料</button><dialog id="wizard" aria-labelledby="wizard-title"><header class="wizard-header"><div><p id="wizard-progress" class="eyebrow" aria-live="polite"></p><h2 id="wizard-title"></h2></div><button id="close-wizard" type="button">稍後再填 ✕</button></header><div class="stepper" aria-label="設定進度"><span>1 目前財務</span><span>2 投資與目標</span><span>3 進階設定</span></div><div class="wizard-body"><form id="finance-form" data-step="0" novalidate><h3>現金分類</h3><div class="wizard-grid"><label>日常可動用現金 <span class="field-level">必要</span><input data-field name="cashDaily" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">一般活存與近期可自由使用的現金。</small></label><label>緊急預備金 <span class="field-level">選填</span><input data-field name="cashEmergency" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">預留給失業、醫療、突發事件等。</small></label><label>投資預備金 <span class="field-level">選填</span><input data-field name="cashInvestmentReserve" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">等待投資機會投入市場的現金；預設不計入生活緩衝。</small></label><label>指定用途預留資金 <span class="field-level">選填</span><input data-field name="cashEarmarked" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">如學費、旅遊、稅金或未來還款等已有用途的資金。</small></label></div><p id="wizard-cash-total" class="note"></p><h3>其他資產</h3><div class="wizard-grid"><label>房屋目前估值 <span class="field-level">選填</span><input data-field name="home" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">以目前合理估值填寫。</small></label><label>其他資產 <span class="field-level">選填</span><input data-field name="other" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">未列入現金或投資的其他資產。</small></label></div><h3>收入與支出</h3><div class="wizard-grid"><label>家庭年收入 <span class="field-level">必要</span><input data-field name="income" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">稅前或稅後皆可，日後請維持相同口徑。</small></label><label>每月生活支出 <span class="field-level">必要</span><input data-field name="living" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">日常生活、保險、學費等；不要包含投資與貸款還款。</small></label><div id="basic-monthly-slot"><label>每月固定投資金額 <span class="field-level">必要</span><input data-field name="monthlyInvestment" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">與財務目標的每月固定投入共用，不會重複扣除。</small></label></div></div><h3>負債明細 <span class="field-level">選填</span></h3><p class="hint">沒有負債可以略過；利率與剩餘月數可稍後補填。</p><div id="debt-editor"></div><button id="add-debt" type="button">＋新增一筆負債</button></form><form id="goal-form" data-step="1" novalidate><h3>投資市值</h3><div class="wizard-grid"><label>一般股票 / ETF 市值 <span class="field-level">必要</span><input data-field name="regular" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">不包含下方另列的槓桿 ETF。</small></label><label>槓桿 ETF 市值 <span class="field-level">選填</span><input data-field name="leveraged" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">沒有持有可填 0。</small></label><label>槓桿 ETF 倍率 <span class="field-level">選填</span><input data-field name="multiplier" type="number" inputmode="decimal" min="1" step="any"><small class="field-helper">例如正2填 2；一般股票與 ETF 為 1。</small></label></div><div class="readonly">投資總市值<output id="assetInvestment"></output></div><div id="goal-monthly-slot" class="wizard-grid"></div><h3>財務目標 <span class="field-level">選填</span></h3><div class="wizard-grid"><label>目前年齡 <span class="field-level">選填</span><input data-field name="currentAge" type="number" inputmode="decimal" min="0" step="1" max="120"><small class="field-helper">以整歲填寫。</small></label><label>目標年齡 <span class="field-level">選填</span><input data-field name="targetAge" type="number" inputmode="decimal" min="0" step="1" max="120"><small class="field-helper">須晚於目前年齡才會估算達標所需報酬率。</small></label><label>目標金融資產 <span class="field-level">選填</span><input data-field name="targetAssets" type="number" inputmode="decimal" min="0" step="any"><small class="field-helper">目前金融資產包含全部現金及投資市值。</small></label><label>自訂預期年化報酬（%） <span class="field-level">選填</span><input data-field name="annualReturn" type="number" inputmode="decimal" min="-99" step="any" max="100"><small class="field-helper">另保留保守5%、基準8%、積極12%的比較；皆非保證報酬。</small></label></div><p class="note" id="wizard-monthly-note"></p></form><form id="settings-form" data-step="2" novalidate><h3>個人警戒線</h3><div class="wizard-grid"><label>最低現金緩衝（月） <span class="field-level">進階</span><input data-field name="minRunway" type="number" inputmode="decimal" min="0.1" step="any" max="120"><small class="field-helper">低於門檻提醒，接近門檻顯示黃色。</small></label><label>最高債務月付比（%） <span class="field-level">進階</span><input data-field name="maxPaymentRatio" type="number" inputmode="decimal" min="0.1" step="any" max="100"><small class="field-helper">每月還款占家庭月收入的個人參考上限。</small></label><label>最高綜合市場槓桿（x） <span class="field-level">進階</span><input data-field name="maxLeverage" type="number" inputmode="decimal" min="0.1" step="any" max="100"><small class="field-helper">同時考慮槓桿 ETF 與投資用途借款。</small></label></div><h3>生活緩衝包含哪些現金？ <span class="field-level">進階</span></h3><div class="buffer-options"><label class="inline-check"><input type="checkbox" data-buffer="cashDaily">日常可動用現金</label><label class="inline-check"><input type="checkbox" data-buffer="cashEmergency">緊急預備金</label><label class="inline-check"><input type="checkbox" data-buffer="cashInvestmentReserve">投資預備金</label><label class="inline-check"><input type="checkbox" data-buffer="cashEarmarked">指定用途預留資金</label></div><p class="hint">現金分類總額皆計入金融資產；只有勾選的分類用於生活現金緩衝。</p><h3>目標投資配置 <span class="field-level">進階</span></h3><p class="hint">依自己的計畫填寫，沒有適用所有人的預設比例。可先全部留白。</p><div class="wizard-grid"><label>一般投資目標（%） <span class="field-level">進階</span><input data-field name="allocationGeneral" type="number" inputmode="decimal" min="0" step="any" max="100" data-nullable="true"><small class="field-helper">三類目標合計須為100%。</small></label><label>槓桿投資目標（%） <span class="field-level">進階</span><input data-field name="allocationLeveraged" type="number" inputmode="decimal" min="0" step="any" max="100" data-nullable="true"><small class="field-helper">可設定0%；若目前仍持有，無法只靠新增資金完全歸零。</small></label><label>投資預備金目標（%） <span class="field-level">進階</span><input data-field name="allocationReserve" type="number" inputmode="decimal" min="0" step="any" max="100" data-nullable="true"><small class="field-helper">已包含在現金，不會再次加進資產。</small></label></div><p id="allocation-validation" class="warning" hidden>目標配置合計需為 100%。</p></form><p id="wizard-error" role="alert" class="warning" hidden></p></div><footer class="wizard-footer"><span id="wizard-save-status" role="status"></span><div><button id="wizard-back" type="button">上一步</button><button id="wizard-next" type="button" class="primary-button">儲存並繼續</button></div></footer></dialog><script>/* Pure local calculations and version migration; no DOM or network dependencies. */
+(function(root){
+'use strict';
+const cashKeys=['cashDaily','cashEmergency','cashInvestmentReserve','cashEarmarked'];
+const scalarDefaults={cashDaily:0,cashEmergency:0,cashInvestmentReserve:0,cashEarmarked:0,home:0,other:0,income:0,living:0,monthlyInvestment:0,regular:0,leveraged:0,multiplier:2,currentAge:0,targetAge:0,targetAssets:0,annualReturn:0,minRunway:6,maxPaymentRatio:40,maxLeverage:2,allocationGeneral:null,allocationLeveraged:null,allocationReserve:null};
+const clone=x=>JSON.parse(JSON.stringify(x));
+function defaults(){return {...scalarDefaults,debts:[],bufferIncludes:{cashDaily:true,cashEmergency:true,cashInvestmentReserve:false,cashEarmarked:false}};}
+function validNumber(v,min=0,max=1e15){return typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;}
+function validateData(raw){
+ if(!raw||typeof raw!=='object'||Array.isArray(raw)||!Object.hasOwn(raw,'cashDaily'))throw Error('財務資料格式不正確');
+ const d=defaults();
+ for(const key of Object.keys(scalarDefaults)){
+  const v=raw[key]===undefined?scalarDefaults[key]:raw[key];
+  if(key.startsWith('allocation')&&v===null){d[key]=null;continue;}
+  const min=key==='annualReturn'?-99:['minRunway','maxPaymentRatio','maxLeverage'].includes(key)?.1:key==='multiplier'?1:0;
+  const max=key.endsWith('Age')?120:key==='annualReturn'||key.startsWith('allocation')||['maxPaymentRatio','maxLeverage'].includes(key)?100:key==='minRunway'?120:1e15;
+  if(!validNumber(v,min,max)||(key.endsWith('Age')&&!Number.isInteger(v)))throw Error(`「${key}」請輸入有效範圍內的數字`);
+  d[key]=v;
+ }
+ if(!raw.bufferIncludes||cashKeys.some(k=>typeof raw.bufferIncludes[k]!=='boolean'))throw Error('生活緩衝分類設定不正確');
+ d.bufferIncludes={...raw.bufferIncludes};
+ if(!Array.isArray(raw.debts)||raw.debts.length>100)throw Error('負債明細格式不正確或超過 100 筆');
+ const ids=new Set();d.debts=raw.debts.map(item=>{
+  if(!item||typeof item.id!=='string'||!item.id||item.id.length>100||ids.has(item.id))throw Error('負債識別碼不正確或重複');ids.add(item.id);
+  if(typeof item.name!=='string'||item.name.length>80||!['mortgage','personalLoan','car','revolving','other'].includes(item.type))throw Error('負債名稱或類型不正確');
+  for(const key of ['balance','monthlyPayment','investmentAmount'])if(!validNumber(item[key]))throw Error('負債金額請輸入有效的非負數字');
+  if(item.investmentAmount>item.balance)throw Error('投資用途金額不能超過該筆負債餘額');
+  if(item.annualRate!==null&&!validNumber(item.annualRate,0,100))throw Error('年利率請填 0 到 100%，或留白');
+  if(item.remainingMonths!==null&&(!validNumber(item.remainingMonths,0,1200)||!Number.isInteger(item.remainingMonths)))throw Error('剩餘月數請填 0 到 1200 的整數，或留白');
+  return {id:item.id,name:item.name,type:item.type,balance:item.balance,annualRate:item.annualRate,monthlyPayment:item.monthlyPayment,remainingMonths:item.remainingMonths,investmentAmount:item.investmentAmount};
+ });
+ if(d.targetAssets>0&&d.targetAge<d.currentAge)throw Error('目標年齡不能小於目前年齡');
+ return d;
+}
+function derived(d){
+ if(!Object.hasOwn(d,'cashDaily'))return d;
+ const cash=cashKeys.reduce((s,k)=>s+d[k],0),cashBuffer=cashKeys.reduce((s,k)=>s+(d.bufferIncludes[k]?d[k]:0),0);
+ const mortgage=d.debts.filter(x=>x.type==='mortgage'),other=d.debts.filter(x=>x.type!=='mortgage');
+ const sum=(a,k)=>a.reduce((s,x)=>s+x[k],0);
+ return {...d,cash,cashBuffer,mortgage:sum(mortgage,'balance'),loan:sum(other,'balance'),mortgagePayment:sum(mortgage,'monthlyPayment'),loanPayment:sum(other,'monthlyPayment'),investmentDebt:sum(d.debts,'investmentAmount')};
+}
+function debtSummary(d){const total=d.debts.reduce((s,x)=>s+x.balance,0),missing=d.debts.some(x=>x.balance>0&&x.annualRate===null);const interest=missing?null:d.debts.reduce((s,x)=>s+x.balance*(x.annualRate||0)/100,0);return {total,payments:d.debts.reduce((s,x)=>s+x.monthlyPayment,0),investmentDebt:d.debts.reduce((s,x)=>s+x.investmentAmount,0),interest,weightedRate:total>0&&interest!==null?interest/total*100:null};}
+function futureValue(principal,monthly,months,annual){const log=Math.log1p(annual)/12,growth=Math.exp(log*months),annuity=log===0?months:Math.expm1(log*months)/Math.expm1(log);return principal*growth+monthly*annuity;}
+function requiredReturn(d){
+ const p=derived(d).cash+d.regular+d.leveraged,n=(d.targetAge-d.currentAge)*12,t=d.targetAssets,c=d.monthlyInvestment;
+ if(t<=0)return {kind:'unset'};if(n<=0)return {kind:'noTime'};
+ if(futureValue(p,c,n,0)>=t)return {kind:'zero',rate:0};
+ if(p===0&&c===0)return {kind:'noCapital'};
+ let low=0,high=1; // Bound at 100% annual; above this is reported without inventing a number.
+ if(futureValue(p,c,n,high)<t)return {kind:'aboveRange'};
+ for(let i=0;i<100;i++){const mid=(low+high)/2;if(futureValue(p,c,n,mid)<t)low=mid;else high=mid;}
+ const rate=high,label=rate<.05?'低於目前保守情境':rate<=.08?'介於保守與基準情境':rate<=.12?'介於基準與積極情境':'高於目前積極情境';return {kind:'rate',rate,label};
+}
+function allocation(d){
+ const current=[d.regular,d.leveraged,d.cashInvestmentReserve],total=current.reduce((a,b)=>a+b,0),weights=[d.allocationGeneral,d.allocationLeveraged,d.allocationReserve];
+ const supplied=weights.every(x=>x!==null),valid=supplied&&Math.abs(weights.reduce((a,b)=>a+b,0)-100)<1e-8;
+ const result={current,total,ratios:current.map(x=>total>0?x/total:null),weights,valid,supplied};
+ if(!valid)return {...result,kind:supplied?'invalid':'unset'};
+ const w=weights.map(x=>x/100);
+ const impossible=w.some((x,i)=>x===0&&current[i]>0);
+ const finalTotal=Math.max(total,...current.map((x,i)=>w[i]>0?x/w[i]:0));
+ if(!Number.isFinite(finalTotal))return {...result,kind:'aboveRange'};
+ const additions=current.map((x,i)=>Math.max(0,w[i]*finalTotal-x));
+ // Current-pool deficits exclude already-overweight classes. At target (or empty), new funds follow target weights.
+ const gaps=current.map((x,i)=>Math.max(0,w[i]*total-x)),gapTotal=gaps.reduce((a,b)=>a+b,0);
+ const proportions=gapTotal>1e-8?gaps.map(x=>x/gapTotal):w;
+ const cents=Math.round(d.monthlyInvestment*100),raw=proportions.map(x=>x*cents),units=raw.map(Math.floor);let remaining=cents-units.reduce((a,b)=>a+b,0);
+ const order=raw.map((x,i)=>({i,remainder:x-units[i]})).sort((a,b)=>b.remainder-a.remainder);
+ for(let i=0;i<remaining;i++)units[order[i%3].i]++;
+ if(impossible)return {...result,kind:'impossible',monthly:units.map(x=>x/100)};
+ return {...result,kind:'valid',finalTotal,additions,additionalCapitalRequired:Math.max(0,finalTotal-total),monthly:units.map(x=>x/100)};
+}
+const aliases={cash:'cashDaily',mortgageBalance:'mortgage',monthlyMortgagePayment:'mortgagePayment',personalLoanBalance:'loan',monthlyLoanPayment:'loanPayment',investmentLoanBalance:'investmentDebt'};
+function legacyData(raw){
+ if(!raw||typeof raw!=='object'||Array.isArray(raw)||!['cash','mortgage','mortgageBalance','regular'].some(k=>Object.hasOwn(raw,k)))throw Error('舊版資料格式不正確');
+ const old={...raw};for(const[a,b]of Object.entries(aliases))if(old[b]===undefined&&old[a]!==undefined)old[b]=old[a];
+ const d=defaults();for(const k of Object.keys(scalarDefaults))if(old[k]!==undefined)d[k]=old[k];d.cashDaily=old.cash??old.cashDaily??0;
+ const add=(name,type,balance,payment,investment)=>{if(balance||payment||investment)d.debts.push({id:type==='mortgage'?'legacy-mortgage':'legacy-personal',name,type,balance:balance||0,monthlyPayment:payment||0,investmentAmount:investment||0,annualRate:null,remainingMonths:null});};
+ add('房貸','mortgage',old.mortgage,old.mortgagePayment,0);add('信貸','personalLoan',old.loan,old.loanPayment,old.investmentDebt);
+ return validateData(d);
+}
+function emptyEnvelope(){return {dataVersion:3,schemaVersion:3,data:defaults(),snapshots:[],savedAt:null,draft:null,provided:[],wizardStep:0,setupInProgress:false};}
+function migrate(raw){
+ if(raw?.dataVersion===3)return clone(raw);
+ if(raw?.dataVersion!==undefined&&![1,2].includes(raw.dataVersion))throw Error('不支援的資料版本');
+ if(raw?.schemaVersion!==undefined&&![1,2].includes(raw.schemaVersion))throw Error('不支援的資料版本');
+ const old=([1,2].includes(raw?.schemaVersion)||[1,2].includes(raw?.dataVersion)||(raw?.data&&raw.schemaVersion===undefined))?raw.data:raw;const result={...emptyEnvelope(),data:legacyData(old),snapshots:raw.snapshots||[],savedAt:raw.savedAt||raw.lastSavedAt||null,migratedFrom:raw.dataVersion||raw.schemaVersion||1};
+ result.provided=Object.keys(scalarDefaults).filter(k=>Object.hasOwn(old,k)||k==='cashDaily');
+ if(raw.draft){
+  const values={};for(const[k,v]of Object.entries(raw.draft)){const key=k==='cash'?'cashDaily':k;if(Object.hasOwn(scalarDefaults,key))values[key]=String(v);}
+  if(['mortgage','mortgagePayment'].some(k=>raw.draft[k]!==undefined)&&!result.data.debts.some(x=>x.type==='mortgage'))result.data.debts.push({id:'legacy-mortgage',name:'房貸',type:'mortgage',balance:0,monthlyPayment:0,investmentAmount:0,annualRate:null,remainingMonths:null});
+  if(['loan','loanPayment','investmentDebt'].some(k=>raw.draft[k]!==undefined)&&!result.data.debts.some(x=>x.type==='personalLoan'))result.data.debts.push({id:'legacy-personal',name:'信貸',type:'personalLoan',balance:0,monthlyPayment:0,investmentAmount:0,annualRate:null,remainingMonths:null});
+  const debtDraft=result.data.debts.map(x=>Object.fromEntries(Object.entries(x).map(([k,v])=>[k,v===null?'':String(v)])));
+  for(const item of debtDraft){const mortgage=item.type==='mortgage';for(const[k,source]of Object.entries({balance:mortgage?'mortgage':'loan',monthlyPayment:mortgage?'mortgagePayment':'loanPayment',investmentAmount:mortgage?null:'investmentDebt'}))if(source&&raw.draft[source]!==undefined)item[k]=raw.draft[source];}
+  result.draft={fields:values,debts:debtDraft};
+ }
+ return result;
+}
+const api={cashKeys,scalarDefaults,defaults,validateData,derived,debtSummary,futureValue,requiredReturn,allocation,migrate,emptyEnvelope,clone};
+if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.FinanceCore=api;
+})(typeof window!=='undefined'?window:globalThis);
+</script><script>'use strict';
 const STORAGE_KEY = 'personal-finance-dashboard.v1';
 const form = document.querySelector('#finance-form');
 const goalForm = document.querySelector('#goal-form');
-const fields = [...document.querySelectorAll('#finance-form input, #goal-form input, #settings-form input')];
-const defaults = Object.fromEntries(fields.map(field => [field.name, field.name === 'multiplier' ? 2 : field.name === 'minRunway' ? 6 : field.name === 'maxPaymentRatio' ? 40 : field.name === 'maxLeverage' ? 2 : 0]));
+const fields = [...document.querySelectorAll('input[data-field]')];
+const defaults = FinanceCore.scalarDefaults;
 const number = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 });
 const decimal = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 });
 const money = value => `NT$ ${number.format(value)}`;
 const percent = value => value === null ? '—' : `${decimal.format(value * 100)}%`;
 const multiple = value => value === null ? '—' : `${decimal.format(value)}x`;
 // Amounts display grouping separators; stored data remains numeric.
-const amountFields = fields.filter(field => !['multiplier','currentAge','targetAge','annualReturn','minRunway','maxPaymentRatio','maxLeverage'].includes(field.name));
+const amountFields = fields.filter(field => !['multiplier','currentAge','targetAge','annualReturn','minRunway','maxPaymentRatio','maxLeverage','allocationGeneral','allocationLeveraged','allocationReserve'].includes(field.name));
 const amountNumber = new Intl.NumberFormat('zh-TW', { maximumFractionDigits:20 });
 for (const field of amountFields) {
   field.type='text';field.inputMode='decimal';field.autocomplete='off';field.spellcheck=false;
@@ -116,6 +203,7 @@ for(const field of amountFields){
 }
 function refreshAmountHints() {
   for (const field of amountFields) {
+    if(!field.isConnected)continue;
     const hint=document.getElementById(`amount-hint-${field.name}`),value=fieldNumber(field);
     if(field.value===''&&!field.validity.badInput){hint.textContent='NT$ 0（空白視為 0）';continue;}
     if(!Number.isFinite(value)||value<0||value>1e15){hint.textContent='請輸入有效範圍內的非負金額';continue;}
@@ -124,6 +212,7 @@ function refreshAmountHints() {
   }
 }
 function calculate(d) {
+  d=FinanceCore.derived(d);
   const investment = d.regular + d.leveraged;
   const assets = d.cash + investment + d.home + d.other;
   const debt = d.mortgage + d.loan;
@@ -134,7 +223,7 @@ function calculate(d) {
   return { investment, assets, debt, net: assets - debt, financial: d.cash + investment,
     exposure, equity, debtRatio: assets > 0 ? debt / assets : null,
     paymentRatio: d.income > 0 ? payments / (d.income / 12) : null,
-    runway: spending > 0 ? d.cash / spending : null,
+    runway: spending > 0 ? (d.cashBuffer ?? d.cash) / spending : null,
     balance: d.income / 12 - spending - d.monthlyInvestment,
     embedded: investment > 0 ? exposure / investment : null,
     investmentDebtRatio: investment > 0 ? d.investmentDebt / investment : null,
@@ -157,6 +246,7 @@ function calculateGoal(d, financial) {
     extra: required === null ? null : Math.max(0, Math.ceil(required - d.monthlyInvestment - 1e-9)) };
 }
 function breakEven(d) {
+  d=FinanceCore.derived(d);
   const initial = d.regular + d.leveraged;
   if (initial === 0 && d.investmentDebt === 0) return null;
   if (initial <= d.investmentDebt) return 0;
@@ -224,6 +314,7 @@ function renderRows(id, rows) {
   }));
 }
 function render(d) {
+  d=FinanceCore.derived(d);
   const c = calculate(d);
   renderGoal(d, c.financial);
   const runwayRisk = c.runway === null ? '' : c.runway < d.minRunway ? 'danger' : c.runway <= d.minRunway * 1.2 ? 'caution' : '';
@@ -258,151 +349,69 @@ function render(d) {
   }));
   window.dispatchEvent(new Event('finance-render'));
 }
-// A versioned envelope keeps values, snapshots and save metadata together.
-const LOCAL_KEY = 'personal-finance-dashboard.v2';
-const activeKey = LOCAL_KEY;
-let state;
-let dataValid = true;
-let lastSaveFailed = false;
-const ui = id => document.getElementById(id);
-const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-function validDate(value) {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+const LOCAL_KEY='personal-finance-dashboard.v3';
+const PREVIOUS_KEY='personal-finance-dashboard.v2';
+const activeKey=LOCAL_KEY;
+let state, demoActive=false, realState=null, dataValid=true, lastSaveFailed=false, readBlocked=false;
+const ui=id=>document.getElementById(id);
+const localDate=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+function validDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value))&&new Date(value).toISOString().slice(0,10)===value;}
+function emptyState(){return FinanceCore.emptyEnvelope();}
+function validateData(raw){return FinanceCore.validateData(raw);}
+function validateEnvelope(input){
+ const raw=FinanceCore.migrate(input),data=validateData(raw.data);
+ if(!Array.isArray(raw.snapshots)||raw.snapshots.length>600)throw Error('快照格式不正確或超過 600 筆');
+ const months=new Set();const snapshots=raw.snapshots.map(s=>{if(!s||!validDate(s.date)||months.has(s.date.slice(0,7)))throw Error('快照日期不正確或月份重複');months.add(s.date.slice(0,7));const item={date:s.date};for(const k of ['net','financial','investment','debt','leverage']){if(k==='leverage'&&s[k]===null){item[k]=null;continue;}if(typeof s[k]!=='number'||!Number.isFinite(s[k])||Math.abs(s[k])>1e32||(k!=='net'&&s[k]<0))throw Error('快照數字不正確');item[k]=s[k];}return item;}).sort((a,b)=>a.date.localeCompare(b.date));
+ const savedAt=raw.savedAt||null;if(savedAt!==null&&(typeof savedAt!=='string'||!Number.isFinite(Date.parse(savedAt))))throw Error('儲存時間不正確');
+ if(raw.draft!==null&&raw.draft!==undefined){if(!raw.draft||typeof raw.draft.fields!=='object'||!Array.isArray(raw.draft.debts)||raw.draft.debts.length>100)throw Error('草稿格式不正確');for(const v of Object.values(raw.draft.fields))if(typeof v!=='string'||v.length>100)throw Error('草稿欄位不正確');for(const debt of raw.draft.debts)for(const v of Object.values(debt))if(typeof v!=='string'||v.length>100)throw Error('負債草稿不正確');}
+ return {...emptyState(),data,snapshots,savedAt,draft:raw.draft||null,provided:Array.isArray(raw.provided)?raw.provided.filter(x=>typeof x==='string'&&x.length<100):[],wizardStep:Number.isInteger(raw.wizardStep)&&raw.wizardStep>=0&&raw.wizardStep<=2?raw.wizardStep:0,setupInProgress:raw.setupInProgress===true,...(raw.migratedFrom?{migratedFrom:raw.migratedFrom}:{})};
 }
-function validateData(source, allowMissing = false) {
-  if (!source || typeof source !== 'object' || Array.isArray(source) || !Object.hasOwn(source, 'cash')) throw new Error('資料欄位格式不正確');
-  const data = {};
-  for (const field of fields) {
-    const v = source[field.name] === undefined && allowMissing ? defaults[field.name] : source[field.name];
-    if (typeof v !== 'number' || !Number.isFinite(v) || v < Number(field.min) || v > Number(field.max || 1e15) || (field.step === '1' && !Number.isInteger(v))) throw new Error(`「${field.closest('label')?.childNodes[0].textContent || field.name}」數值不正確`);
-    data[field.name] = v;
-  }
-  if (data.investmentDebt > data.loan) throw new Error('投資用途信貸不能超過信貸餘額');
-  if (data.targetAssets > 0 && data.targetAge < data.currentAge) throw new Error('目標年齡不能小於目前年齡');
-  return data;
+function readLocal(){
+ for(const key of [LOCAL_KEY,PREVIOUS_KEY,STORAGE_KEY]){const raw=localStorage.getItem(key);if(raw!==null)return {value:validateEnvelope(JSON.parse(raw)),needsMigration:key!==LOCAL_KEY};}
+ return {value:emptyState(),needsMigration:false};
 }
-function emptyState() { return { schemaVersion:2, data:{...defaults}, snapshots:[], savedAt:null, draft:null }; }
-function validateEnvelope(raw) {
-  if (!raw || raw.schemaVersion !== 2) throw new Error('不支援的備份版本');
-  const data = validateData(raw.data, true);
-  if (!Array.isArray(raw.snapshots) || raw.snapshots.length > 600) throw new Error('快照格式不正確或超過 600 筆');
-  const months = new Set();
-  const snapshots = raw.snapshots.map(s => {
-    if (!s || !validDate(s.date) || months.has(s.date.slice(0,7))) throw new Error('快照日期不正確或月份重複');
-    months.add(s.date.slice(0,7));
-    const item = {date:s.date};
-    for (const key of ['net','financial','investment','debt','leverage']) {
-      const v = s[key];
-      if (key === 'leverage' && v === null) { item[key] = null; continue; }
-      if (typeof v !== 'number' || !Number.isFinite(v) || Math.abs(v) > 1e32 || (key !== 'net' && v < 0)) throw new Error('快照數值不正確');
-      item[key] = v;
-    }
-    return item;
-  }).sort((a,b)=>a.date.localeCompare(b.date));
-  if (raw.savedAt !== null && (typeof raw.savedAt !== 'string' || !Number.isFinite(Date.parse(raw.savedAt)))) throw new Error('儲存時間格式不正確');
-  let draft = null;
-  if (raw.draft !== undefined && raw.draft !== null) {
-    if (typeof raw.draft !== 'object' || Array.isArray(raw.draft)) throw new Error('未完成輸入格式不正確');
-    draft = {};
-    for (const field of fields) {
-      const value = raw.draft[field.name];
-      if (typeof value !== 'string' || value.length > 100) throw new Error('未完成輸入格式不正確');
-      draft[field.name] = value;
-    }
-  }
-  return {schemaVersion:2, data, snapshots, savedAt:raw.savedAt, draft};
+function showSaved(ok=!lastSaveFailed){
+ const message=demoActive?'目前為範例資料，不儲存':ok?(state.savedAt?(state.draft?'已儲存草稿：請修正輸入':'✓ 資料已儲存於此瀏覽器'):isFirstRun()?'尚未輸入資料':'已載入既有資料（尚無儲存時間）'):'無法儲存，請立即匯出備份';setText('save-status',message);ui('wizard-save-status').textContent=message;
+ ui('saved-at').textContent=`最後儲存：${!demoActive&&state.savedAt?new Date(state.savedAt).toLocaleString('zh-TW',{hour12:false}):'—'}`;
 }
-function readLocal(key) {
-  const raw = localStorage.getItem(key);
-  if (raw) return validateEnvelope(JSON.parse(raw));
-  if (key === LOCAL_KEY) {
-    const legacy = localStorage.getItem(STORAGE_KEY);
-    if (legacy) return {...emptyState(), data:validateData(JSON.parse(legacy), true)};
-  }
-  return emptyState();
+function persist(touch=true){
+ if(demoActive){showSaved();return true;}
+ if(readBlocked){ui('storage-warning').hidden=false;ui('storage-warning').textContent='既有資料讀取失敗，已停止自動覆寫。請先匯出現況或匯入可用備份；原始 localStorage 尚未改動。';showSaved(false);return false;}
+ const next={...state,savedAt:touch?new Date().toISOString():state.savedAt};
+ try{localStorage.setItem(LOCAL_KEY,JSON.stringify(next));state.savedAt=next.savedAt;lastSaveFailed=false;ui('storage-warning').hidden=true;showSaved();return true;}
+ catch{lastSaveFailed=true;ui('storage-warning').hidden=false;ui('storage-warning').textContent='本機儲存失敗：請檢查瀏覽器儲存權限或空間，並立即匯出備份。';showSaved(false);return false;}
 }
-function showSaved(ok = !lastSaveFailed) {
-  setText('save-status', ok ? (state.savedAt ? (state.draft ? '已儲存草稿：請修正輸入' : '✓ 資料已儲存於此瀏覽器') : '尚未輸入資料') : '無法儲存，請立即匯出備份');
-  ui('saved-at').textContent = `最後儲存：${state.savedAt ? new Date(state.savedAt).toLocaleString('zh-TW', {hour12:false}) : '—'}`;
+function isFirstRun(){return !state.savedAt&&!state.snapshots.length&&!state.draft&&['cashDaily','cashEmergency','cashInvestmentReserve','cashEarmarked','home','other','regular','leveraged','income','living','monthlyInvestment','targetAssets'].every(k=>!state.data[k])&&!state.data.debts.some(x=>x.balance||x.monthlyPayment);}
+function paint(){
+ for(const f of fields){const value=state.draft?.fields?.[f.name];f.value=value!==undefined?value:state.data[f.name]===null?'':state.data[f.name]===0&&!state.provided.includes(f.name)&&!['multiplier','minRunway','maxPaymentRatio','maxLeverage'].includes(f.name)?'':state.data[f.name];f.setAttribute('aria-invalid','false');}
+ document.querySelectorAll('[data-buffer]').forEach(el=>el.checked=state.data.bufferIncludes[el.dataset.buffer]);
+ renderDebtEditor();for(const f of amountFields)if(f.isConnected)formatAmountField(f);refreshAmountHints();
+ dataValid=!state.draft;ui('wizard-error').hidden=!state.draft;if(state.draft)ui('wizard-error').textContent='已恢復尚未完成的輸入；計算保留上一筆有效資料，請修正提示。';
+ for(const id of ['validation','goal-validation'])if(ui(id))ui(id).hidden=true;
+ render(state.data);renderHistory();renderV3();showSaved();
 }
-function persist(touch = true) {
-  const next = {...state, savedAt:touch ? new Date().toISOString() : state.savedAt};
-  try {
-    localStorage.setItem(activeKey, JSON.stringify(next));
-    state.savedAt = next.savedAt; lastSaveFailed = false; ui('storage-warning').hidden = true; showSaved(true); return true;
-  } catch {
-    lastSaveFailed = true; ui('storage-warning').hidden = false;
-    ui('storage-warning').textContent = '本機儲存失敗：瀏覽器可能禁止儲存或空間不足。目前資料僅在畫面中，關閉後可能遺失；請立即匯出備份。';
-    showSaved(false); return false;
-  }
+function debtDraftRows(){return [...ui('debt-editor').querySelectorAll('.debt-row')].map(row=>{const item={id:row.dataset.id};row.querySelectorAll('[data-debt-field]').forEach(el=>item[el.dataset.debtField]=el.value);return item;});}
+function getDraft(){return {fields:Object.fromEntries(fields.map(f=>[f.name,f.value])),debts:debtDraftRows()};}
+function readDebts(){return [...ui('debt-editor').querySelectorAll('.debt-row')].map(row=>{const item={id:row.dataset.id};row.querySelectorAll('[data-debt-field]').forEach(el=>{const k=el.dataset.debtField;if(['name','type'].includes(k))item[k]=el.value;else item[k]=el.value===''?(k==='annualRate'||k==='remainingMonths'?null:0):fieldNumber(el);});return item;});}
+function update(event){
+ refreshAmountHints();try{
+  const input={...state.data};for(const f of fields){const v=f.value===''?(f.dataset.nullable?null:defaults[f.name]):fieldNumber(f);f.setAttribute('aria-invalid',String(v!==null&&(!Number.isFinite(v)||v<Number(f.min)||v>Number(f.max||1e15)||(f.step==='1'&&!Number.isInteger(v)))));input[f.name]=v;}
+  input.bufferIncludes=Object.fromEntries([...document.querySelectorAll('[data-buffer]')].map(el=>[el.dataset.buffer,el.checked]));input.debts=readDebts();
+  const data=validateData(input);state.data=data;state.draft=null;dataValid=true;ui('wizard-error').hidden=true;
+  if(event?.target?.matches('[data-field]')&&!state.provided.includes(event.target.name))state.provided.push(event.target.name);
+  if(event?.target?.matches('[data-buffer]')&&!state.provided.includes('bufferIncludes'))state.provided.push('bufferIncludes');
+  render(data);persist();renderV3();
+ }catch(e){dataValid=false;state.draft=getDraft();ui('wizard-error').hidden=false;ui('wizard-error').textContent=e.message;persist();}
 }
-function paint() {
-  for (const field of fields) { field.value = state.draft ? state.draft[field.name] : state.data[field.name]; field.setAttribute('aria-invalid','false'); }
-  for (const id of ['validation','goal-validation']) ui(id).hidden = true;
-  for(const field of amountFields)formatAmountField(field);
-  refreshAmountHints();
-  dataValid = !state.draft; render(state.data); renderHistory(); showSaved();
-  if (state.draft) {
-    for (const id of ['validation','goal-validation']) { ui(id).hidden=false;ui(id).textContent='已恢復尚未完成的輸入；結果顯示上一筆有效資料，請修正輸入。'; }
-  }
-}
-function update() {
-  refreshAmountHints();
-  try {
-    const input = {};
-    for (const field of fields) {
-      const value = field.value === '' && !field.validity.badInput ? defaults[field.name] : fieldNumber(field);
-      field.setAttribute('aria-invalid', String(!Number.isFinite(value) || value < Number(field.min) || value > Number(field.max || 1e15) || (field.step === '1' && !Number.isInteger(value))));
-      input[field.name] = value;
-    }
-    const data = validateData(input);
-    state.data = data; state.draft = null; dataValid = true;
-    for (const id of ['validation','goal-validation']) ui(id).hidden = true;
-    render(data); persist();
-  } catch (e) {
-    dataValid = false;
-    for (const id of ['validation','goal-validation']) { ui(id).hidden = false; ui(id).textContent = e.message; }
-    state.draft = Object.fromEntries(fields.map(field=>[field.name,field.value]));
-    persist();
-  }
-}
-for (const id of ['finance-form','goal-form','settings-form']) {
-  ui(id).addEventListener('input', update);
-  ui(id).addEventListener('submit', e=>e.preventDefault());
-}
-function commit(next) {
-  state = validateEnvelope(next);
-  paint(); persist();
-}
-function clearData() {
-  if (!confirm('要清除本機全部財務資料、目標、警戒線與快照嗎？建議先匯出備份。')) return;
-  if (!confirm('最後確認：清除後無法復原。確定清除本機資料？')) return;
-  state=emptyState();paint();persist();
-  try { localStorage.removeItem(STORAGE_KEY); }
-  catch { ui('storage-warning').hidden=false;ui('storage-warning').textContent='舊版資料清除失敗，請檢查瀏覽器儲存權限。'; }
-  ui('data-message').textContent=lastSaveFailed ? '清除未能寫入瀏覽器；重新開啟仍可能恢復舊資料。' : '本機資料已重設；不影響其他網站的資料。';
-}
-ui('clear-data').addEventListener('click', clearData);
-ui('export-data').addEventListener('click', () => {
-  const payload = {...state};
-  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const url = URL.createObjectURL(blob); const a = document.createElement('a');
-  a.href = url; a.download = `財務備份-${localDate()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
-  ui('data-message').textContent = '已匯出完整備份，包含有效資料、未完成輸入、目標、警戒線與所有快照。';
-});
-ui('import-data').addEventListener('change', async e => {
-  const file = e.target.files[0]; if (!file) return;
-  try {
-    if (file.size > 2*1024*1024) throw new Error('備份檔不能超過 2 MB');
-    const raw = JSON.parse(await file.text());
-    const next = raw.schemaVersion === undefined ? {...emptyState(), data:validateData(raw,true)} : validateEnvelope(raw);
-    if (!confirm('以備份取代本機全部資料、目標、警戒線及快照？此操作會覆蓋目前紀錄。')) { ui('data-message').textContent='已取消匯入，原資料未變更。'; return; }
-    commit(next); ui('data-message').textContent = lastSaveFailed ? '備份已載入畫面，但儲存失敗，請保留原備份檔。' : '匯入完成，已儲存到此裝置瀏覽器。';
-  } catch (e) { ui('data-message').textContent = `匯入失敗：${e.message}；原資料未變更。`; }
-  finally { e.target.value = ''; }
-});
+for(const id of ['finance-form','goal-form','settings-form']){ui(id).addEventListener('input',update);ui(id).addEventListener('change',event=>{if(event.target.matches('select,[data-buffer]'))update(event);});ui(id).addEventListener('submit',e=>e.preventDefault());}
+function commit(next){if(demoActive)exitDemo(false);state=validateEnvelope(next);readBlocked=false;paint();persist();}
+function clearData(){if(demoActive)return;if(!confirm('清除本機財務資料、目標、警戒線與快照？建議先匯出備份。')||!confirm('最後確認：清除後無法復原，確定清除本機資料？'))return;state=emptyState();readBlocked=false;paint();if(persist(false)){try{localStorage.removeItem(PREVIOUS_KEY);localStorage.removeItem(STORAGE_KEY);}catch{ui('storage-warning').hidden=false;ui('storage-warning').textContent='舊版資料清除失敗，請檢查瀏覽器權限。';}}ui('data-message').textContent=lastSaveFailed?'清除未能寫入瀏覽器。':'本機財務資料已清除，不影響其他網站。';}
+ui('clear-data').addEventListener('click',clearData);
+ui('export-data').addEventListener('click',()=>{if(demoActive)return;const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`財務備份-${localDate()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);ui('data-message').textContent='已匯出 V3 完整備份，包含負債、現金分類、目標配置、草稿與快照。';});
+ui('import-data').addEventListener('change',async event=>{const file=event.target.files[0];if(!file)return;try{if(demoActive)throw Error('請先離開範例模式');if(file.size>2*1024*1024)throw Error('備份檔不能超過 2 MB');const next=validateEnvelope(JSON.parse(await file.text()));if(!confirm('以備份取代目前所有財務資料及快照？')){ui('data-message').textContent='已取消匯入，原資料未變更。';return;}commit(next);ui('data-message').textContent=lastSaveFailed?'備份已載入，但儲存失敗，請保留原檔。':'匯入完成，已儲存到此裝置瀏覽器。';}catch(e){ui('data-message').textContent=`匯入失敗：${e.message}；原資料未變更。`;}finally{event.target.value='';}});
 ui('snapshot-date').value = localDate();
 ui('save-snapshot').addEventListener('click', () => {
+  if (demoActive) return;
   if (!dataValid) { ui('data-message').textContent = '請先修正輸入後再存快照。'; return; }
   const date = ui('snapshot-date').value;
   if (!validDate(date)) { ui('data-message').textContent = '請選擇有效快照日期。'; return; }
@@ -443,9 +452,75 @@ window.addEventListener('storage', e=>{
   if(e.key!==activeKey || !e.newValue)return;
   try{const next=validateEnvelope(JSON.parse(e.newValue));if(next.savedAt!==state.savedAt){if(!dataValid){setText('save-status','另一分頁已修改資料；請匯出備份再重新整理');return;}state=next;paint();}}catch{setText('save-status','另一分頁資料格式異常，請先匯出備份');}
 });
-try { state = readLocal(LOCAL_KEY); paint(); if (!localStorage.getItem(LOCAL_KEY) && localStorage.getItem(STORAGE_KEY)) persist(false); }
-catch { state=emptyState();paint();lastSaveFailed=true;showSaved(false);ui('storage-warning').hidden=false;ui('storage-warning').textContent='無法讀取舊資料：儲存權限不足或資料格式損壞。原紀錄尚未改動，請先檢查權限或匯入備份。'; }
-if(location.protocol==='file:')ui('data-message').textContent='目前為本機檔案模式；瀏覽器可能不保證關閉後保存。建議改用固定網址並匯出備份，原檔資料不會自動搬至新網址。';
+function wireDebtAmount(field){
+ amountFields.push(field);field.type='text';field.inputMode='decimal';field.autocomplete='off';field.spellcheck=false;
+ const hint=document.createElement('small');hint.id=`amount-hint-${field.name}`;hint.className='amount-hint';field.insertAdjacentElement('afterend',hint);field.setAttribute('aria-describedby',hint.id);
+ field.addEventListener('input',e=>{if(!e.isComposing)formatAmountField(field,true);});field.addEventListener('compositionend',()=>{formatAmountField(field,true);update();});
+ field.addEventListener('beforeinput',e=>{const at=field.selectionStart;if(at!==field.selectionEnd)return;if(e.inputType==='deleteContentBackward'&&at>1&&field.value[at-1]===','){e.preventDefault();field.setRangeText('',at-2,at,'end');formatAmountField(field,true);update();}else if(e.inputType==='deleteContentForward'&&field.value[at]===','){e.preventDefault();field.setRangeText('',at,at+2,'end');formatAmountField(field,true);update();}});
+}
+function renderDebtEditor(rows=state.draft?.debts||state.data.debts){
+ for(let i=amountFields.length-1;i>=0;i--)if(amountFields[i].dataset.debtField)amountFields.splice(i,1);
+ ui('debt-editor').replaceChildren();
+ rows.forEach((item,index)=>{
+  const box=document.createElement('section');box.className='debt-row';box.dataset.id=item.id;
+  const header=document.createElement('div');header.className='section-heading';const title=document.createElement('h4');title.textContent=`負債 ${index+1}`;const remove=document.createElement('button');remove.type='button';remove.textContent='移除此筆';remove.addEventListener('click',()=>{if(!confirm('移除此筆負債？'))return;box.remove();for(let i=amountFields.length-1;i>=0;i--)if(!amountFields[i].isConnected)amountFields.splice(i,1);update();});header.append(title,remove);box.append(header);
+  const grid=document.createElement('div');grid.className='wizard-grid';
+  const definitions=[['name','負債名稱','text','選填','如房貸、將來銀行信貸或車貸。'],['type','負債類型','select','必要','依借款實際類型選擇。'],['balance','目前餘額','amount','必要','尚未償還的本金。'],['annualRate','年利率（%）','number','選填','未知可留白；不會猜測利率。'],['monthlyPayment','每月還款','amount','必要','實際每月固定償還金額。'],['remainingMonths','剩餘月數','number','選填','未知可留白。'],['investmentAmount','投資用途金額','amount','選填','只有實際投入股票、ETF 等投資的借款才計入。']];
+  for(const [key,label,type,level,help]of definitions){const wrapper=document.createElement('label');wrapper.append(document.createTextNode(label+' '));const badge=document.createElement('span');badge.className='field-level';badge.textContent=level;wrapper.append(badge);let el;
+   if(type==='select'){el=document.createElement('select');for(const[value,text]of [['mortgage','房貸'],['personalLoan','信貸'],['car','車貸'],['revolving','卡循'],['other','其他']]){const option=document.createElement('option');option.value=value;option.textContent=text;el.append(option);}}
+   else{el=document.createElement('input');el.type=type==='amount'?'text':type;el.inputMode=type==='text'?'text':'decimal';el.min='0';el.step=key==='remainingMonths'?'1':'any';if(key==='annualRate')el.max='100';if(key==='remainingMonths')el.max='1200';if(key==='name')el.maxLength=80;}
+   el.dataset.debtField=key;el.name=`debt-${item.id}-${key}`;el.value=item[key]===null||item[key]===undefined?'':item[key];wrapper.append(el);grid.append(wrapper);if(type==='amount')wireDebtAmount(el);
+   const small=document.createElement('small');small.className='field-helper';small.textContent=help;wrapper.append(small);
+  }
+  const info=document.createElement('details');info.className='inline-info';const summary=document.createElement('summary');summary.textContent='ⓘ 投資用途金額如何計算？';const text=document.createElement('p');text.textContent='投資用途金額只是該筆負債的一部分，不會再次加入總負債。必須介於 0 與該筆餘額之間。';info.append(summary,text);box.append(grid,info);ui('debt-editor').append(box);
+ });for(const field of amountFields)if(field.isConnected)formatAmountField(field);refreshAmountHints();
+}
+function showWizardStep(step){
+ const monthly=fields.find(f=>f.name==='monthlyInvestment').closest('label');if(step===0||step===1){ui(step===0?'basic-monthly-slot':'goal-monthly-slot').append(monthly);monthly.firstChild.textContent=step===0?'每月固定投資金額 ':'每月固定投入 ';}
+ state.wizardStep=Math.max(0,Math.min(2,step));document.querySelectorAll('[data-step]').forEach(form=>form.hidden=Number(form.dataset.step)!==state.wizardStep);
+ ui('wizard-progress').textContent=`Step ${state.wizardStep+1} / 3`;ui('wizard-title').textContent=['目前財務','投資與目標','進階設定'][state.wizardStep];
+ document.querySelectorAll('.stepper span').forEach((el,i)=>el.classList.toggle('active',i===state.wizardStep));ui('wizard-back').disabled=state.wizardStep===0;ui('wizard-next').textContent=state.wizardStep===2?'完成設定':'儲存並繼續';ui('wizard').querySelector('.wizard-body').scrollTop=0;
+}
+function openWizard(step=0){if(demoActive)exitDemo(false);state.setupInProgress=true;showWizardStep(step);if(!ui('wizard').open)ui('wizard').showModal();persist(false);}
+function closeWizard(){state.setupInProgress=false;ui('wizard').close();persist(false);renderV3();}
+function exitDemo(open=true){demoActive=false;state=realState||emptyState();realState=null;paint();if(open)openWizard(0);}
+function enterDemo(){if(!isFirstRun())return;realState=FinanceCore.clone(state);demoActive=true;state=emptyState();state.data={...FinanceCore.defaults(),cashDaily:200000,cashEmergency:300000,cashInvestmentReserve:150000,home:8000000,income:1500000,living:35000,monthlyInvestment:25000,regular:1200000,leveraged:200000,currentAge:35,targetAge:55,targetAssets:15000000,annualReturn:8,allocationGeneral:70,allocationLeveraged:10,allocationReserve:20,debts:[{id:'demo-mortgage',name:'範例房貸',type:'mortgage',balance:4000000,annualRate:2.2,monthlyPayment:20000,remainingMonths:240,investmentAmount:0},{id:'demo-loan',name:'範例信貸',type:'personalLoan',balance:300000,annualRate:3,monthlyPayment:6000,remainingMonths:60,investmentAmount:100000}]};paint();}
+function requiredReturnText(result){return result.kind==='rate'?`${decimal.format(result.rate*100)}%`:result.kind==='zero'?'0%':result.kind==='aboveRange'?'超出估算範圍（>100%）':result.kind==='noTime'?'沒有未來投入期間':result.kind==='noCapital'?'尚無可成長的本金或投入':'尚未設定目標';}
+function renderV3(){
+ const d=state.data,c=calculate(d),derived=FinanceCore.derived(d),alloc=FinanceCore.allocation(d),debt=FinanceCore.debtSummary(d),first=isFirstRun()&&!demoActive;
+ ui('welcome').hidden=!first;ui('dashboard').hidden=first;ui('demo-banner').hidden=!demoActive;ui('mobile-edit').hidden=first||ui('wizard').open;document.body.classList.toggle('demo-mode',demoActive);
+ for(const id of ['save-snapshot','export-data','import-data','clear-data'])ui(id).disabled=demoActive;
+ const rr=FinanceCore.requiredReturn(d);ui('required-return').textContent=requiredReturnText(rr);ui('required-return-note').textContent=rr.kind==='zero'?'即使不計投資報酬，依目前投入亦可達成目標。':rr.kind==='rate'?rr.label+'。僅為月末投入、月複利的數學情境比較，不保證未來報酬。':rr.kind==='noTime'?'目標年齡須晚於目前年齡，才計算未來報酬。':rr.kind==='aboveRange'?'在 0%～100% 年化估算範圍內無解，可檢視投入或目標期限。':rr.kind==='noCapital'?'只有報酬率無法讓零本金、零投入達標。':'設定目標金額與年齡後即可估算。';
+ const labels=['一般投資','槓桿投資','投資預備金'];ui('allocation-current').replaceChildren();const bar=document.createElement('div');bar.className='allocation-bar';
+ alloc.ratios.forEach((ratio,i)=>{const part=document.createElement('span');part.className=`asset-${i}`;part.style.width=`${(ratio||0)*100}%`;part.title=`${labels[i]} ${percent(ratio)}`;bar.append(part);});ui('allocation-current').append(bar);
+ const legend=document.createElement('p');legend.className='allocation-legend';legend.textContent=labels.map((label,i)=>`${label} ${percent(alloc.ratios[i])}`).join(' · ');ui('allocation-current').append(legend);
+ ui('allocation-target').textContent=alloc.valid?'目標：'+labels.map((label,i)=>`${label} ${decimal.format(alloc.weights[i])}%`).join(' · '):alloc.kind==='unset'?'尚未設定目標配置；可於進階設定依自己的計畫填寫。':'目標配置合計需為 100%。';
+ ui('allocation-validation').hidden=!(alloc.kind==='invalid'||(alloc.kind==='unset'&&alloc.weights.some(x=>x!==null)));
+ ui('wizard-cash-total').textContent=`總現金 ${money(derived.cash)} · 生活緩衝使用 ${money(derived.cashBuffer)}`;ui('wizard-monthly-note').textContent=`每月固定投入 ${money(d.monthlyInvestment)}（於第一步設定）`;
+ renderRows('cash-analysis',[['日常可動用現金',money(d.cashDaily)],['緊急預備金',money(d.cashEmergency)],['投資預備金',money(d.cashInvestmentReserve)],['指定用途預留',money(d.cashEarmarked)],['總現金',money(derived.cash)],['計入生活緩衝',money(derived.cashBuffer)]]);
+ renderRows('debt-analysis',[['總負債',money(debt.total)],['每月總還款',money(debt.payments)],['投資用途負債',money(debt.investmentDebt)],['加權平均利率',debt.total===0?'無負債':debt.weightedRate===null?'填寫貸款利率後即可估算。':`${decimal.format(debt.weightedRate)}%`],['粗估一年利息成本',debt.interest===null?'填寫貸款利率後即可估算。':money(debt.interest)]]);
+ ui('rebalance-note').textContent=alloc.kind==='valid'?`如果完全不賣既有部位，約需新增 ${money(alloc.additionalCapitalRequired)} 才能回到目標配置。`:alloc.kind==='impossible'?'此目標無法單靠新增資金完全達成，因為目前仍持有目標配置為 0% 的資產。':alloc.kind==='invalid'?'目標配置合計需為 100%。':alloc.kind==='aboveRange'?'目標比例過小，超出可估算範圍，請檢視目標配置。':'先於進階設定填寫三類目標配置。';
+ renderRows('rebalance-additions',alloc.kind==='valid'?labels.map((label,i)=>[`${label}需新增`,money(alloc.additions[i])]):[]);
+ renderRows('monthly-allocation',alloc.monthly?labels.map((label,i)=>[label,money(alloc.monthly[i])]):[]);
+ const basic=['cashDaily','cashEmergency','cashInvestmentReserve','cashEarmarked','income','living','monthlyInvestment','regular'],goal=['currentAge','targetAge','targetAssets','annualReturn','monthlyInvestment'];const basicCount=basic.filter(k=>state.provided.includes(k)).length,goalCount=goal.filter(k=>state.provided.includes(k)&&(k!=='targetAssets'||d[k]>0)&&(k!=='targetAge'||d[k]>d.currentAge)).length,advanced=[state.provided.includes('minRunway'),state.provided.includes('maxPaymentRatio'),state.provided.includes('maxLeverage'),alloc.valid].filter(Boolean).length;
+ ui('completeness').replaceChildren();for(const text of [`基本資料 ${basicCount} / 8`,`目標設定 ${goalCount} / 5`,`進階設定 ${advanced} / 4`,`再補 ${8-basicCount+5-goalCount+4-advanced} 項，可看到更完整分析。選填項目可稍後補充。`]){const p=document.createElement('p');p.textContent=text;ui('completeness').append(p);}
+}
+ui('edit-finances').addEventListener('click',()=>openWizard(0));ui('mobile-edit').addEventListener('click',()=>openWizard(0));ui('start-setup').addEventListener('click',()=>openWizard(0));ui('demo-start').addEventListener('click',enterDemo);ui('demo-exit').addEventListener('click',()=>exitDemo(true));document.querySelectorAll('[data-open-step]').forEach(button=>button.addEventListener('click',()=>openWizard(Number(button.dataset.openStep))));
+ui('close-wizard').addEventListener('click',closeWizard);ui('wizard').addEventListener('cancel',e=>{e.preventDefault();closeWizard();});ui('wizard').addEventListener('close',()=>renderV3());
+ui('wizard-back').addEventListener('click',()=>{showWizardStep(state.wizardStep-1);persist(false);});
+ui('wizard-next').addEventListener('click',()=>{
+ if(!dataValid){ui('wizard-error').hidden=false;return;}
+ const required=state.wizardStep===0?['cashDaily','income','living','monthlyInvestment']:state.wizardStep===1?['regular']:[];
+ const missing=required.find(name=>fields.find(f=>f.name===name).value.trim()==='');if(missing){ui('wizard-error').hidden=false;ui('wizard-error').textContent='必要欄位請填寫金額，沒有也可以填 0。';fields.find(f=>f.name===missing).focus();return;}
+ if(state.wizardStep===2){const a=FinanceCore.allocation(state.data);if(a.weights.some(v=>v!==null)&&!a.valid){ui('wizard-error').hidden=false;ui('wizard-error').textContent='目標配置合計需為 100%。';return;}closeWizard();return;}
+ showWizardStep(state.wizardStep+1);persist(false);
+});
+ui('add-debt').addEventListener('click',()=>{const rows=debtDraftRows();if(rows.length>=100){ui('wizard-error').hidden=false;ui('wizard-error').textContent='最多 100 筆負債。';return;}rows.push({id:crypto.randomUUID?crypto.randomUUID():`debt-${Date.now()}-${Math.random().toString(36).slice(2)}`,name:'',type:'personalLoan',balance:0,annualRate:null,monthlyPayment:0,remainingMonths:null,investmentAmount:0});renderDebtEditor(rows);update();});
+// Small optional explanations stay collapsed unless opened by the user.
+for(const name of ['cashInvestmentReserve','cashEarmarked','multiplier','allocationReserve']){const label=fields.find(f=>f.name===name).closest('label'),details=document.createElement('details'),summary=document.createElement('summary'),p=document.createElement('p');details.className='inline-info';summary.textContent='ⓘ';summary.setAttribute('aria-label','查看欄位說明');p.textContent=label.querySelector('.field-helper').textContent;details.append(summary,p);label.append(details);}
+try{const loaded=readLocal();state=loaded.value;paint();if(loaded.needsMigration)persist(false);}catch(e){state=emptyState();readBlocked=true;lastSaveFailed=true;paint();ui('storage-warning').hidden=false;ui('storage-warning').textContent=`無法讀取既有資料：${e.message}。原始資料未改動，請檢查儲存權限或匯入備份。`;showSaved(false);}
+if(location.protocol==='file:')ui('data-message').textContent='本機檔案模式的保存依瀏覽器而異，建議使用固定網址並定期匯出備份。';
+if(state.setupInProgress&&!readBlocked)setTimeout(()=>openWizard(state.wizardStep),0);
 </script><script>'use strict';
 // Explanations and image rendering use only existing local data; no network calls.
 const THEME_KEY='personal-finance-dashboard.theme';
@@ -474,8 +549,8 @@ function addExplanation(host, text, brief, status='') {
   full.append(summary,p);details.append(control,short,full);wrapper.append(details);host.append(wrapper);
 }
 function explainMetrics() {
-  const d=state.data,c=calculate(d), personal='警戒線是你自行設定的個人參考，並非通用安全值。';
-  let cash=c.runway===null?'目前沒有生活與債務支出，無法估算現金緩衝月數。':`目前現金可支撐 ${decimal.format(c.runway)} 個月生活費與債務還款。你的最低門檻為 ${decimal.format(d.minRunway)} 個月，${c.runway<d.minRunway?`還差 ${decimal.format(d.minRunway-c.runway)} 個月。若收入中斷，流動性可能較不足，可優先累積現金或檢視固定支出。`:`高於或等於門檻 ${decimal.format(c.runway-d.minRunway)} 個月。${c.runway<=d.minRunway*1.2?'目前仍符合最低門檻，但緩衝不算寬裕，可優先維持現金部位。':'可依收入穩定度與家庭支出，定期檢視現金需求。'}`}`;
+  const d=FinanceCore.derived(state.data),c=calculate(d), personal='警戒線是你自行設定的個人參考，並非通用安全值。';
+  let cash=c.runway===null?'目前沒有生活與債務支出，無法估算現金緩衝月數。':`目前現金可支撐 ${decimal.format(c.runway)} 個月生活費與債務還款。你的最低門檻為 ${decimal.format(d.minRunway)} 個月，${c.runway<d.minRunway?`還差 ${decimal.format(d.minRunway-c.runway)} 個月。生活緩衝僅採勾選的現金分類。若收入中斷，流動性可能較不足，可優先累積現金或檢視固定支出。`:`高於或等於門檻 ${decimal.format(c.runway-d.minRunway)} 個月。${c.runway<=d.minRunway*1.2?'目前仍符合最低門檻，但緩衝不算寬裕，可優先維持現金部位。':'可依收入穩定度與家庭支出，定期檢視現金需求。'}`}`;
   const cashStatus=ui('cashRunway').classList.contains('danger')?'danger':ui('cashRunway').classList.contains('caution')?'caution':'';
   const cashBrief=c.runway===null?'目前無支出，暫不計算緩衝月數。':`現金可支撐 ${decimal.format(c.runway)} 個月，${c.runway<d.minRunway?`比 ${decimal.format(d.minRunway)} 個月門檻還差 ${decimal.format(d.minRunway-c.runway)} 個月，可優先補足現金。`:`高於最低 ${decimal.format(d.minRunway)} 個月門檻 ${decimal.format(c.runway-d.minRunway)} 個月，可優先維持現金部位。`}`;
   addExplanation(ui('cashRunway').closest('.kpi'),cash+' '+personal,cashBrief,cashStatus);
@@ -509,7 +584,7 @@ function renderMonthComparison() {
 let summaryURL=null;
 let summaryBusy=false;
 function summaryModel(snapshot, hide) {
-  const d=state.data,c=calculate(d), s=snapshot;
+  const d=FinanceCore.derived(state.data),c=calculate(d), s=snapshot;
   const date=s?s.date:localDate();
   const financial=s?s.financial:c.financial,net=s?s.net:c.net,debt=s?s.debt:c.debt,assets=s?s.net+s.debt:c.assets;
   const goal=s?null:(d.targetAssets>0?d.targetAssets:null);
@@ -527,7 +602,7 @@ function summaryModel(snapshot, hide) {
     ['每月債務還款 / 月收入',s?unavailable:percent(c.paymentRatio)],
     ['投資總市值',money(s?s.investment:c.investment)],['綜合市場槓桿',multiple(s?s.leverage:c.leverage)]
   ];
-  return {date,hide,snapshot:!!s,rows,goal:hide?[]:[['目前金融資產',money(financial)],['目標金融資產',goal?money(goal):s?unavailable:'未設定'],['完成率',goal?percent(financial/goal):s?unavailable:'—'],['目標年齡',s?unavailable:goal?`${d.targetAge} 歲`:'未設定']],stress:hide?[]:[20,30,50].map(drop=>[`大盤 −${drop}%`,s?unavailable:money(c.scenarios.find(r=>r.drop===drop).net)]),notes:s?['歷史快照未記錄現金流、目標與壓力情境，缺項標示未記錄。','總資產以快照淨資產加總負債還原，未混用目前資料。']:hide?['淨資產完成率 = 淨資產 ÷ 目標金融資產（參考同一目標）。','財務目標完成率 = 金融資產 ÷ 目標金融資產。']:['現金、目標與市場情境均依目前有效輸入估算。']};
+  return {date,hide,demo:demoActive,snapshot:!!s,meta:s?null:{allocation:FinanceCore.allocation(state.data),required:FinanceCore.requiredReturn(state.data)},rows,goal:hide?[]:[['目前金融資產',money(financial)],['目標金融資產',goal?money(goal):s?unavailable:'未設定'],['完成率',goal?percent(financial/goal):s?unavailable:'—'],['目標年齡',s?unavailable:goal?`${d.targetAge} 歲`:'未設定']],stress:hide?[]:[20,30,50].map(drop=>[`大盤 −${drop}%`,s?unavailable:money(c.scenarios.find(r=>r.drop===drop).net)]),notes:s?['歷史快照未記錄現金流、目標與壓力情境，缺項標示未記錄。','總資產以快照淨資產加總負債還原，未混用目前資料。']:hide?['淨資產完成率 = 淨資產 ÷ 目標金融資產（參考同一目標）。','財務目標完成率 = 金融資產 ÷ 目標金融資產。']:['現金、目標與市場情境均依目前有效輸入估算。']};
 }
 function drawSummary(model) {
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
@@ -538,7 +613,7 @@ function drawSummary(model) {
   const box=(x,y,w,h)=>{ctx.fillStyle=palette.panel;ctx.beginPath();ctx.roundRect(x,y,w,h,16);ctx.fill();};
   ctx.fillStyle=palette.bg;ctx.fillRect(0,0,1080,1350);
   text('MY FINANCE',60,58,18,palette.accent,600);text('我的財務摘要',60,120,48,palette.text,700);
-  text(model.date.replaceAll('-','/'),60,164,25,palette.muted);text(model.hide?'分享版 · 金額已隱藏':model.snapshot?'每月快照':'個人財務概覽',650,160,24,palette.muted,400,370);
+  text(model.date.replaceAll('-','/'),60,164,25,palette.muted);text(model.demo?'範例資料 · 非本人財務':model.hide?'分享版 · 金額已隱藏':model.snapshot?'每月快照':'個人財務概覽',650,160,24,palette.muted,400,370);
   const cols=2,w=470,gap=20, start=205,h=model.hide?175:112;
   model.rows.forEach(([label,value],i)=>{const x=60+(i%cols)*(w+gap),y=start+Math.floor(i/cols)*(h+14);box(x,y,w,h);text(label,x+22,y+36,23,palette.muted);text(value,x+22,y+(model.hide?106:83),model.hide?44:34,palette.text,650,w-44);});
   let y=model.hide?835:760;
@@ -550,6 +625,7 @@ function drawSummary(model) {
     y+=140;
   }
   model.notes.forEach((note,i)=>text(note,60,y+i*30,21,palette.muted,400,960));
+  if(model.meta){const allocation=model.meta.allocation;const line='投資池配置：'+['一般','槓桿','預備金'].map((name,i)=>`${name} ${percent(allocation.ratios[i])}`).join(' ／ ');text(line,60,1190,20,palette.muted,400,960);text(`達標所需年化報酬率：${requiredReturnText(model.meta.required)}`,60,1220,20,palette.muted,400,960);}
   ctx.strokeStyle=palette.line;ctx.beginPath();ctx.moveTo(60,1250);ctx.lineTo(1020,1250);ctx.stroke();
   text('資料為使用者自行輸入之簡化財務估算，不構成投資建議。',60,1293,23,palette.muted,400,960);
   return canvas;
@@ -574,7 +650,7 @@ async function generateSummary(snapshot=null) {
 ui('generate-summary').addEventListener('click',()=>generateSummary());
 ui('hide-amounts').addEventListener('change',()=>{if(summaryURL){URL.revokeObjectURL(summaryURL);summaryURL=null;}ui('summary-preview').removeAttribute('src');ui('download-summary').removeAttribute('href');ui('image-result').hidden=true;ui('image-status').textContent='分享設定已變更，請重新產生圖片。';});
 window.addEventListener('finance-summary',e=>{const snapshot=state.snapshots.find(s=>s.date===e.detail);if(snapshot)generateSummary(snapshot);});
-window.addEventListener('finance-render',explainMetrics);
+window.addEventListener('finance-render',()=>{explainMetrics();if(summaryURL){URL.revokeObjectURL(summaryURL);summaryURL=null;ui('summary-preview').removeAttribute('src');ui('download-summary').removeAttribute('href');ui('image-result').hidden=true;ui('image-status').textContent='資料已更新，請重新產生摘要圖。';}});
 window.addEventListener('finance-history',renderMonthComparison);
 explainMetrics();
 </script></body></html>

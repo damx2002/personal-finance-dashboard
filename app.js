@@ -2,15 +2,15 @@
 const STORAGE_KEY = 'personal-finance-dashboard.v1';
 const form = document.querySelector('#finance-form');
 const goalForm = document.querySelector('#goal-form');
-const fields = [...document.querySelectorAll('#finance-form input, #goal-form input, #settings-form input')];
-const defaults = Object.fromEntries(fields.map(field => [field.name, field.name === 'multiplier' ? 2 : field.name === 'minRunway' ? 6 : field.name === 'maxPaymentRatio' ? 40 : field.name === 'maxLeverage' ? 2 : 0]));
+const fields = [...document.querySelectorAll('input[data-field]')];
+const defaults = FinanceCore.scalarDefaults;
 const number = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 });
 const decimal = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 });
 const money = value => `NT$ ${number.format(value)}`;
 const percent = value => value === null ? '—' : `${decimal.format(value * 100)}%`;
 const multiple = value => value === null ? '—' : `${decimal.format(value)}x`;
 // Amounts display grouping separators; stored data remains numeric.
-const amountFields = fields.filter(field => !['multiplier','currentAge','targetAge','annualReturn','minRunway','maxPaymentRatio','maxLeverage'].includes(field.name));
+const amountFields = fields.filter(field => !['multiplier','currentAge','targetAge','annualReturn','minRunway','maxPaymentRatio','maxLeverage','allocationGeneral','allocationLeveraged','allocationReserve'].includes(field.name));
 const amountNumber = new Intl.NumberFormat('zh-TW', { maximumFractionDigits:20 });
 for (const field of amountFields) {
   field.type='text';field.inputMode='decimal';field.autocomplete='off';field.spellcheck=false;
@@ -53,6 +53,7 @@ for(const field of amountFields){
 }
 function refreshAmountHints() {
   for (const field of amountFields) {
+    if(!field.isConnected)continue;
     const hint=document.getElementById(`amount-hint-${field.name}`),value=fieldNumber(field);
     if(field.value===''&&!field.validity.badInput){hint.textContent='NT$ 0（空白視為 0）';continue;}
     if(!Number.isFinite(value)||value<0||value>1e15){hint.textContent='請輸入有效範圍內的非負金額';continue;}
@@ -61,6 +62,7 @@ function refreshAmountHints() {
   }
 }
 function calculate(d) {
+  d=FinanceCore.derived(d);
   const investment = d.regular + d.leveraged;
   const assets = d.cash + investment + d.home + d.other;
   const debt = d.mortgage + d.loan;
@@ -71,7 +73,7 @@ function calculate(d) {
   return { investment, assets, debt, net: assets - debt, financial: d.cash + investment,
     exposure, equity, debtRatio: assets > 0 ? debt / assets : null,
     paymentRatio: d.income > 0 ? payments / (d.income / 12) : null,
-    runway: spending > 0 ? d.cash / spending : null,
+    runway: spending > 0 ? (d.cashBuffer ?? d.cash) / spending : null,
     balance: d.income / 12 - spending - d.monthlyInvestment,
     embedded: investment > 0 ? exposure / investment : null,
     investmentDebtRatio: investment > 0 ? d.investmentDebt / investment : null,
@@ -94,6 +96,7 @@ function calculateGoal(d, financial) {
     extra: required === null ? null : Math.max(0, Math.ceil(required - d.monthlyInvestment - 1e-9)) };
 }
 function breakEven(d) {
+  d=FinanceCore.derived(d);
   const initial = d.regular + d.leveraged;
   if (initial === 0 && d.investmentDebt === 0) return null;
   if (initial <= d.investmentDebt) return 0;
@@ -161,6 +164,7 @@ function renderRows(id, rows) {
   }));
 }
 function render(d) {
+  d=FinanceCore.derived(d);
   const c = calculate(d);
   renderGoal(d, c.financial);
   const runwayRisk = c.runway === null ? '' : c.runway < d.minRunway ? 'danger' : c.runway <= d.minRunway * 1.2 ? 'caution' : '';
@@ -195,151 +199,69 @@ function render(d) {
   }));
   window.dispatchEvent(new Event('finance-render'));
 }
-// A versioned envelope keeps values, snapshots and save metadata together.
-const LOCAL_KEY = 'personal-finance-dashboard.v2';
-const activeKey = LOCAL_KEY;
-let state;
-let dataValid = true;
-let lastSaveFailed = false;
-const ui = id => document.getElementById(id);
-const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-function validDate(value) {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+const LOCAL_KEY='personal-finance-dashboard.v3';
+const PREVIOUS_KEY='personal-finance-dashboard.v2';
+const activeKey=LOCAL_KEY;
+let state, demoActive=false, realState=null, dataValid=true, lastSaveFailed=false, readBlocked=false;
+const ui=id=>document.getElementById(id);
+const localDate=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+function validDate(value){return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value))&&new Date(value).toISOString().slice(0,10)===value;}
+function emptyState(){return FinanceCore.emptyEnvelope();}
+function validateData(raw){return FinanceCore.validateData(raw);}
+function validateEnvelope(input){
+ const raw=FinanceCore.migrate(input),data=validateData(raw.data);
+ if(!Array.isArray(raw.snapshots)||raw.snapshots.length>600)throw Error('快照格式不正確或超過 600 筆');
+ const months=new Set();const snapshots=raw.snapshots.map(s=>{if(!s||!validDate(s.date)||months.has(s.date.slice(0,7)))throw Error('快照日期不正確或月份重複');months.add(s.date.slice(0,7));const item={date:s.date};for(const k of ['net','financial','investment','debt','leverage']){if(k==='leverage'&&s[k]===null){item[k]=null;continue;}if(typeof s[k]!=='number'||!Number.isFinite(s[k])||Math.abs(s[k])>1e32||(k!=='net'&&s[k]<0))throw Error('快照數字不正確');item[k]=s[k];}return item;}).sort((a,b)=>a.date.localeCompare(b.date));
+ const savedAt=raw.savedAt||null;if(savedAt!==null&&(typeof savedAt!=='string'||!Number.isFinite(Date.parse(savedAt))))throw Error('儲存時間不正確');
+ if(raw.draft!==null&&raw.draft!==undefined){if(!raw.draft||typeof raw.draft.fields!=='object'||!Array.isArray(raw.draft.debts)||raw.draft.debts.length>100)throw Error('草稿格式不正確');for(const v of Object.values(raw.draft.fields))if(typeof v!=='string'||v.length>100)throw Error('草稿欄位不正確');for(const debt of raw.draft.debts)for(const v of Object.values(debt))if(typeof v!=='string'||v.length>100)throw Error('負債草稿不正確');}
+ return {...emptyState(),data,snapshots,savedAt,draft:raw.draft||null,provided:Array.isArray(raw.provided)?raw.provided.filter(x=>typeof x==='string'&&x.length<100):[],wizardStep:Number.isInteger(raw.wizardStep)&&raw.wizardStep>=0&&raw.wizardStep<=2?raw.wizardStep:0,setupInProgress:raw.setupInProgress===true,...(raw.migratedFrom?{migratedFrom:raw.migratedFrom}:{})};
 }
-function validateData(source, allowMissing = false) {
-  if (!source || typeof source !== 'object' || Array.isArray(source) || !Object.hasOwn(source, 'cash')) throw new Error('資料欄位格式不正確');
-  const data = {};
-  for (const field of fields) {
-    const v = source[field.name] === undefined && allowMissing ? defaults[field.name] : source[field.name];
-    if (typeof v !== 'number' || !Number.isFinite(v) || v < Number(field.min) || v > Number(field.max || 1e15) || (field.step === '1' && !Number.isInteger(v))) throw new Error(`「${field.closest('label')?.childNodes[0].textContent || field.name}」數值不正確`);
-    data[field.name] = v;
-  }
-  if (data.investmentDebt > data.loan) throw new Error('投資用途信貸不能超過信貸餘額');
-  if (data.targetAssets > 0 && data.targetAge < data.currentAge) throw new Error('目標年齡不能小於目前年齡');
-  return data;
+function readLocal(){
+ for(const key of [LOCAL_KEY,PREVIOUS_KEY,STORAGE_KEY]){const raw=localStorage.getItem(key);if(raw!==null)return {value:validateEnvelope(JSON.parse(raw)),needsMigration:key!==LOCAL_KEY};}
+ return {value:emptyState(),needsMigration:false};
 }
-function emptyState() { return { schemaVersion:2, data:{...defaults}, snapshots:[], savedAt:null, draft:null }; }
-function validateEnvelope(raw) {
-  if (!raw || raw.schemaVersion !== 2) throw new Error('不支援的備份版本');
-  const data = validateData(raw.data, true);
-  if (!Array.isArray(raw.snapshots) || raw.snapshots.length > 600) throw new Error('快照格式不正確或超過 600 筆');
-  const months = new Set();
-  const snapshots = raw.snapshots.map(s => {
-    if (!s || !validDate(s.date) || months.has(s.date.slice(0,7))) throw new Error('快照日期不正確或月份重複');
-    months.add(s.date.slice(0,7));
-    const item = {date:s.date};
-    for (const key of ['net','financial','investment','debt','leverage']) {
-      const v = s[key];
-      if (key === 'leverage' && v === null) { item[key] = null; continue; }
-      if (typeof v !== 'number' || !Number.isFinite(v) || Math.abs(v) > 1e32 || (key !== 'net' && v < 0)) throw new Error('快照數值不正確');
-      item[key] = v;
-    }
-    return item;
-  }).sort((a,b)=>a.date.localeCompare(b.date));
-  if (raw.savedAt !== null && (typeof raw.savedAt !== 'string' || !Number.isFinite(Date.parse(raw.savedAt)))) throw new Error('儲存時間格式不正確');
-  let draft = null;
-  if (raw.draft !== undefined && raw.draft !== null) {
-    if (typeof raw.draft !== 'object' || Array.isArray(raw.draft)) throw new Error('未完成輸入格式不正確');
-    draft = {};
-    for (const field of fields) {
-      const value = raw.draft[field.name];
-      if (typeof value !== 'string' || value.length > 100) throw new Error('未完成輸入格式不正確');
-      draft[field.name] = value;
-    }
-  }
-  return {schemaVersion:2, data, snapshots, savedAt:raw.savedAt, draft};
+function showSaved(ok=!lastSaveFailed){
+ const message=demoActive?'目前為範例資料，不儲存':ok?(state.savedAt?(state.draft?'已儲存草稿：請修正輸入':'✓ 資料已儲存於此瀏覽器'):isFirstRun()?'尚未輸入資料':'已載入既有資料（尚無儲存時間）'):'無法儲存，請立即匯出備份';setText('save-status',message);ui('wizard-save-status').textContent=message;
+ ui('saved-at').textContent=`最後儲存：${!demoActive&&state.savedAt?new Date(state.savedAt).toLocaleString('zh-TW',{hour12:false}):'—'}`;
 }
-function readLocal(key) {
-  const raw = localStorage.getItem(key);
-  if (raw) return validateEnvelope(JSON.parse(raw));
-  if (key === LOCAL_KEY) {
-    const legacy = localStorage.getItem(STORAGE_KEY);
-    if (legacy) return {...emptyState(), data:validateData(JSON.parse(legacy), true)};
-  }
-  return emptyState();
+function persist(touch=true){
+ if(demoActive){showSaved();return true;}
+ if(readBlocked){ui('storage-warning').hidden=false;ui('storage-warning').textContent='既有資料讀取失敗，已停止自動覆寫。請先匯出現況或匯入可用備份；原始 localStorage 尚未改動。';showSaved(false);return false;}
+ const next={...state,savedAt:touch?new Date().toISOString():state.savedAt};
+ try{localStorage.setItem(LOCAL_KEY,JSON.stringify(next));state.savedAt=next.savedAt;lastSaveFailed=false;ui('storage-warning').hidden=true;showSaved();return true;}
+ catch{lastSaveFailed=true;ui('storage-warning').hidden=false;ui('storage-warning').textContent='本機儲存失敗：請檢查瀏覽器儲存權限或空間，並立即匯出備份。';showSaved(false);return false;}
 }
-function showSaved(ok = !lastSaveFailed) {
-  setText('save-status', ok ? (state.savedAt ? (state.draft ? '已儲存草稿：請修正輸入' : '✓ 資料已儲存於此瀏覽器') : '尚未輸入資料') : '無法儲存，請立即匯出備份');
-  ui('saved-at').textContent = `最後儲存：${state.savedAt ? new Date(state.savedAt).toLocaleString('zh-TW', {hour12:false}) : '—'}`;
+function isFirstRun(){return !state.savedAt&&!state.snapshots.length&&!state.draft&&['cashDaily','cashEmergency','cashInvestmentReserve','cashEarmarked','home','other','regular','leveraged','income','living','monthlyInvestment','targetAssets'].every(k=>!state.data[k])&&!state.data.debts.some(x=>x.balance||x.monthlyPayment);}
+function paint(){
+ for(const f of fields){const value=state.draft?.fields?.[f.name];f.value=value!==undefined?value:state.data[f.name]===null?'':state.data[f.name]===0&&!state.provided.includes(f.name)&&!['multiplier','minRunway','maxPaymentRatio','maxLeverage'].includes(f.name)?'':state.data[f.name];f.setAttribute('aria-invalid','false');}
+ document.querySelectorAll('[data-buffer]').forEach(el=>el.checked=state.data.bufferIncludes[el.dataset.buffer]);
+ renderDebtEditor();for(const f of amountFields)if(f.isConnected)formatAmountField(f);refreshAmountHints();
+ dataValid=!state.draft;ui('wizard-error').hidden=!state.draft;if(state.draft)ui('wizard-error').textContent='已恢復尚未完成的輸入；計算保留上一筆有效資料，請修正提示。';
+ for(const id of ['validation','goal-validation'])if(ui(id))ui(id).hidden=true;
+ render(state.data);renderHistory();renderV3();showSaved();
 }
-function persist(touch = true) {
-  const next = {...state, savedAt:touch ? new Date().toISOString() : state.savedAt};
-  try {
-    localStorage.setItem(activeKey, JSON.stringify(next));
-    state.savedAt = next.savedAt; lastSaveFailed = false; ui('storage-warning').hidden = true; showSaved(true); return true;
-  } catch {
-    lastSaveFailed = true; ui('storage-warning').hidden = false;
-    ui('storage-warning').textContent = '本機儲存失敗：瀏覽器可能禁止儲存或空間不足。目前資料僅在畫面中，關閉後可能遺失；請立即匯出備份。';
-    showSaved(false); return false;
-  }
+function debtDraftRows(){return [...ui('debt-editor').querySelectorAll('.debt-row')].map(row=>{const item={id:row.dataset.id};row.querySelectorAll('[data-debt-field]').forEach(el=>item[el.dataset.debtField]=el.value);return item;});}
+function getDraft(){return {fields:Object.fromEntries(fields.map(f=>[f.name,f.value])),debts:debtDraftRows()};}
+function readDebts(){return [...ui('debt-editor').querySelectorAll('.debt-row')].map(row=>{const item={id:row.dataset.id};row.querySelectorAll('[data-debt-field]').forEach(el=>{const k=el.dataset.debtField;if(['name','type'].includes(k))item[k]=el.value;else item[k]=el.value===''?(k==='annualRate'||k==='remainingMonths'?null:0):fieldNumber(el);});return item;});}
+function update(event){
+ refreshAmountHints();try{
+  const input={...state.data};for(const f of fields){const v=f.value===''?(f.dataset.nullable?null:defaults[f.name]):fieldNumber(f);f.setAttribute('aria-invalid',String(v!==null&&(!Number.isFinite(v)||v<Number(f.min)||v>Number(f.max||1e15)||(f.step==='1'&&!Number.isInteger(v)))));input[f.name]=v;}
+  input.bufferIncludes=Object.fromEntries([...document.querySelectorAll('[data-buffer]')].map(el=>[el.dataset.buffer,el.checked]));input.debts=readDebts();
+  const data=validateData(input);state.data=data;state.draft=null;dataValid=true;ui('wizard-error').hidden=true;
+  if(event?.target?.matches('[data-field]')&&!state.provided.includes(event.target.name))state.provided.push(event.target.name);
+  if(event?.target?.matches('[data-buffer]')&&!state.provided.includes('bufferIncludes'))state.provided.push('bufferIncludes');
+  render(data);persist();renderV3();
+ }catch(e){dataValid=false;state.draft=getDraft();ui('wizard-error').hidden=false;ui('wizard-error').textContent=e.message;persist();}
 }
-function paint() {
-  for (const field of fields) { field.value = state.draft ? state.draft[field.name] : state.data[field.name]; field.setAttribute('aria-invalid','false'); }
-  for (const id of ['validation','goal-validation']) ui(id).hidden = true;
-  for(const field of amountFields)formatAmountField(field);
-  refreshAmountHints();
-  dataValid = !state.draft; render(state.data); renderHistory(); showSaved();
-  if (state.draft) {
-    for (const id of ['validation','goal-validation']) { ui(id).hidden=false;ui(id).textContent='已恢復尚未完成的輸入；結果顯示上一筆有效資料，請修正輸入。'; }
-  }
-}
-function update() {
-  refreshAmountHints();
-  try {
-    const input = {};
-    for (const field of fields) {
-      const value = field.value === '' && !field.validity.badInput ? defaults[field.name] : fieldNumber(field);
-      field.setAttribute('aria-invalid', String(!Number.isFinite(value) || value < Number(field.min) || value > Number(field.max || 1e15) || (field.step === '1' && !Number.isInteger(value))));
-      input[field.name] = value;
-    }
-    const data = validateData(input);
-    state.data = data; state.draft = null; dataValid = true;
-    for (const id of ['validation','goal-validation']) ui(id).hidden = true;
-    render(data); persist();
-  } catch (e) {
-    dataValid = false;
-    for (const id of ['validation','goal-validation']) { ui(id).hidden = false; ui(id).textContent = e.message; }
-    state.draft = Object.fromEntries(fields.map(field=>[field.name,field.value]));
-    persist();
-  }
-}
-for (const id of ['finance-form','goal-form','settings-form']) {
-  ui(id).addEventListener('input', update);
-  ui(id).addEventListener('submit', e=>e.preventDefault());
-}
-function commit(next) {
-  state = validateEnvelope(next);
-  paint(); persist();
-}
-function clearData() {
-  if (!confirm('要清除本機全部財務資料、目標、警戒線與快照嗎？建議先匯出備份。')) return;
-  if (!confirm('最後確認：清除後無法復原。確定清除本機資料？')) return;
-  state=emptyState();paint();persist();
-  try { localStorage.removeItem(STORAGE_KEY); }
-  catch { ui('storage-warning').hidden=false;ui('storage-warning').textContent='舊版資料清除失敗，請檢查瀏覽器儲存權限。'; }
-  ui('data-message').textContent=lastSaveFailed ? '清除未能寫入瀏覽器；重新開啟仍可能恢復舊資料。' : '本機資料已重設；不影響其他網站的資料。';
-}
-ui('clear-data').addEventListener('click', clearData);
-ui('export-data').addEventListener('click', () => {
-  const payload = {...state};
-  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const url = URL.createObjectURL(blob); const a = document.createElement('a');
-  a.href = url; a.download = `財務備份-${localDate()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
-  ui('data-message').textContent = '已匯出完整備份，包含有效資料、未完成輸入、目標、警戒線與所有快照。';
-});
-ui('import-data').addEventListener('change', async e => {
-  const file = e.target.files[0]; if (!file) return;
-  try {
-    if (file.size > 2*1024*1024) throw new Error('備份檔不能超過 2 MB');
-    const raw = JSON.parse(await file.text());
-    const next = raw.schemaVersion === undefined ? {...emptyState(), data:validateData(raw,true)} : validateEnvelope(raw);
-    if (!confirm('以備份取代本機全部資料、目標、警戒線及快照？此操作會覆蓋目前紀錄。')) { ui('data-message').textContent='已取消匯入，原資料未變更。'; return; }
-    commit(next); ui('data-message').textContent = lastSaveFailed ? '備份已載入畫面，但儲存失敗，請保留原備份檔。' : '匯入完成，已儲存到此裝置瀏覽器。';
-  } catch (e) { ui('data-message').textContent = `匯入失敗：${e.message}；原資料未變更。`; }
-  finally { e.target.value = ''; }
-});
+for(const id of ['finance-form','goal-form','settings-form']){ui(id).addEventListener('input',update);ui(id).addEventListener('change',event=>{if(event.target.matches('select,[data-buffer]'))update(event);});ui(id).addEventListener('submit',e=>e.preventDefault());}
+function commit(next){if(demoActive)exitDemo(false);state=validateEnvelope(next);readBlocked=false;paint();persist();}
+function clearData(){if(demoActive)return;if(!confirm('清除本機財務資料、目標、警戒線與快照？建議先匯出備份。')||!confirm('最後確認：清除後無法復原，確定清除本機資料？'))return;state=emptyState();readBlocked=false;paint();if(persist(false)){try{localStorage.removeItem(PREVIOUS_KEY);localStorage.removeItem(STORAGE_KEY);}catch{ui('storage-warning').hidden=false;ui('storage-warning').textContent='舊版資料清除失敗，請檢查瀏覽器權限。';}}ui('data-message').textContent=lastSaveFailed?'清除未能寫入瀏覽器。':'本機財務資料已清除，不影響其他網站。';}
+ui('clear-data').addEventListener('click',clearData);
+ui('export-data').addEventListener('click',()=>{if(demoActive)return;const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`財務備份-${localDate()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);ui('data-message').textContent='已匯出 V3 完整備份，包含負債、現金分類、目標配置、草稿與快照。';});
+ui('import-data').addEventListener('change',async event=>{const file=event.target.files[0];if(!file)return;try{if(demoActive)throw Error('請先離開範例模式');if(file.size>2*1024*1024)throw Error('備份檔不能超過 2 MB');const next=validateEnvelope(JSON.parse(await file.text()));if(!confirm('以備份取代目前所有財務資料及快照？')){ui('data-message').textContent='已取消匯入，原資料未變更。';return;}commit(next);ui('data-message').textContent=lastSaveFailed?'備份已載入，但儲存失敗，請保留原檔。':'匯入完成，已儲存到此裝置瀏覽器。';}catch(e){ui('data-message').textContent=`匯入失敗：${e.message}；原資料未變更。`;}finally{event.target.value='';}});
 ui('snapshot-date').value = localDate();
 ui('save-snapshot').addEventListener('click', () => {
+  if (demoActive) return;
   if (!dataValid) { ui('data-message').textContent = '請先修正輸入後再存快照。'; return; }
   const date = ui('snapshot-date').value;
   if (!validDate(date)) { ui('data-message').textContent = '請選擇有效快照日期。'; return; }
@@ -380,6 +302,72 @@ window.addEventListener('storage', e=>{
   if(e.key!==activeKey || !e.newValue)return;
   try{const next=validateEnvelope(JSON.parse(e.newValue));if(next.savedAt!==state.savedAt){if(!dataValid){setText('save-status','另一分頁已修改資料；請匯出備份再重新整理');return;}state=next;paint();}}catch{setText('save-status','另一分頁資料格式異常，請先匯出備份');}
 });
-try { state = readLocal(LOCAL_KEY); paint(); if (!localStorage.getItem(LOCAL_KEY) && localStorage.getItem(STORAGE_KEY)) persist(false); }
-catch { state=emptyState();paint();lastSaveFailed=true;showSaved(false);ui('storage-warning').hidden=false;ui('storage-warning').textContent='無法讀取舊資料：儲存權限不足或資料格式損壞。原紀錄尚未改動，請先檢查權限或匯入備份。'; }
-if(location.protocol==='file:')ui('data-message').textContent='目前為本機檔案模式；瀏覽器可能不保證關閉後保存。建議改用固定網址並匯出備份，原檔資料不會自動搬至新網址。';
+function wireDebtAmount(field){
+ amountFields.push(field);field.type='text';field.inputMode='decimal';field.autocomplete='off';field.spellcheck=false;
+ const hint=document.createElement('small');hint.id=`amount-hint-${field.name}`;hint.className='amount-hint';field.insertAdjacentElement('afterend',hint);field.setAttribute('aria-describedby',hint.id);
+ field.addEventListener('input',e=>{if(!e.isComposing)formatAmountField(field,true);});field.addEventListener('compositionend',()=>{formatAmountField(field,true);update();});
+ field.addEventListener('beforeinput',e=>{const at=field.selectionStart;if(at!==field.selectionEnd)return;if(e.inputType==='deleteContentBackward'&&at>1&&field.value[at-1]===','){e.preventDefault();field.setRangeText('',at-2,at,'end');formatAmountField(field,true);update();}else if(e.inputType==='deleteContentForward'&&field.value[at]===','){e.preventDefault();field.setRangeText('',at,at+2,'end');formatAmountField(field,true);update();}});
+}
+function renderDebtEditor(rows=state.draft?.debts||state.data.debts){
+ for(let i=amountFields.length-1;i>=0;i--)if(amountFields[i].dataset.debtField)amountFields.splice(i,1);
+ ui('debt-editor').replaceChildren();
+ rows.forEach((item,index)=>{
+  const box=document.createElement('section');box.className='debt-row';box.dataset.id=item.id;
+  const header=document.createElement('div');header.className='section-heading';const title=document.createElement('h4');title.textContent=`負債 ${index+1}`;const remove=document.createElement('button');remove.type='button';remove.textContent='移除此筆';remove.addEventListener('click',()=>{if(!confirm('移除此筆負債？'))return;box.remove();for(let i=amountFields.length-1;i>=0;i--)if(!amountFields[i].isConnected)amountFields.splice(i,1);update();});header.append(title,remove);box.append(header);
+  const grid=document.createElement('div');grid.className='wizard-grid';
+  const definitions=[['name','負債名稱','text','選填','如房貸、將來銀行信貸或車貸。'],['type','負債類型','select','必要','依借款實際類型選擇。'],['balance','目前餘額','amount','必要','尚未償還的本金。'],['annualRate','年利率（%）','number','選填','未知可留白；不會猜測利率。'],['monthlyPayment','每月還款','amount','必要','實際每月固定償還金額。'],['remainingMonths','剩餘月數','number','選填','未知可留白。'],['investmentAmount','投資用途金額','amount','選填','只有實際投入股票、ETF 等投資的借款才計入。']];
+  for(const [key,label,type,level,help]of definitions){const wrapper=document.createElement('label');wrapper.append(document.createTextNode(label+' '));const badge=document.createElement('span');badge.className='field-level';badge.textContent=level;wrapper.append(badge);let el;
+   if(type==='select'){el=document.createElement('select');for(const[value,text]of [['mortgage','房貸'],['personalLoan','信貸'],['car','車貸'],['revolving','卡循'],['other','其他']]){const option=document.createElement('option');option.value=value;option.textContent=text;el.append(option);}}
+   else{el=document.createElement('input');el.type=type==='amount'?'text':type;el.inputMode=type==='text'?'text':'decimal';el.min='0';el.step=key==='remainingMonths'?'1':'any';if(key==='annualRate')el.max='100';if(key==='remainingMonths')el.max='1200';if(key==='name')el.maxLength=80;}
+   el.dataset.debtField=key;el.name=`debt-${item.id}-${key}`;el.value=item[key]===null||item[key]===undefined?'':item[key];wrapper.append(el);grid.append(wrapper);if(type==='amount')wireDebtAmount(el);
+   const small=document.createElement('small');small.className='field-helper';small.textContent=help;wrapper.append(small);
+  }
+  const info=document.createElement('details');info.className='inline-info';const summary=document.createElement('summary');summary.textContent='ⓘ 投資用途金額如何計算？';const text=document.createElement('p');text.textContent='投資用途金額只是該筆負債的一部分，不會再次加入總負債。必須介於 0 與該筆餘額之間。';info.append(summary,text);box.append(grid,info);ui('debt-editor').append(box);
+ });for(const field of amountFields)if(field.isConnected)formatAmountField(field);refreshAmountHints();
+}
+function showWizardStep(step){
+ const monthly=fields.find(f=>f.name==='monthlyInvestment').closest('label');if(step===0||step===1){ui(step===0?'basic-monthly-slot':'goal-monthly-slot').append(monthly);monthly.firstChild.textContent=step===0?'每月固定投資金額 ':'每月固定投入 ';}
+ state.wizardStep=Math.max(0,Math.min(2,step));document.querySelectorAll('[data-step]').forEach(form=>form.hidden=Number(form.dataset.step)!==state.wizardStep);
+ ui('wizard-progress').textContent=`Step ${state.wizardStep+1} / 3`;ui('wizard-title').textContent=['目前財務','投資與目標','進階設定'][state.wizardStep];
+ document.querySelectorAll('.stepper span').forEach((el,i)=>el.classList.toggle('active',i===state.wizardStep));ui('wizard-back').disabled=state.wizardStep===0;ui('wizard-next').textContent=state.wizardStep===2?'完成設定':'儲存並繼續';ui('wizard').querySelector('.wizard-body').scrollTop=0;
+}
+function openWizard(step=0){if(demoActive)exitDemo(false);state.setupInProgress=true;showWizardStep(step);if(!ui('wizard').open)ui('wizard').showModal();persist(false);}
+function closeWizard(){state.setupInProgress=false;ui('wizard').close();persist(false);renderV3();}
+function exitDemo(open=true){demoActive=false;state=realState||emptyState();realState=null;paint();if(open)openWizard(0);}
+function enterDemo(){if(!isFirstRun())return;realState=FinanceCore.clone(state);demoActive=true;state=emptyState();state.data={...FinanceCore.defaults(),cashDaily:200000,cashEmergency:300000,cashInvestmentReserve:150000,home:8000000,income:1500000,living:35000,monthlyInvestment:25000,regular:1200000,leveraged:200000,currentAge:35,targetAge:55,targetAssets:15000000,annualReturn:8,allocationGeneral:70,allocationLeveraged:10,allocationReserve:20,debts:[{id:'demo-mortgage',name:'範例房貸',type:'mortgage',balance:4000000,annualRate:2.2,monthlyPayment:20000,remainingMonths:240,investmentAmount:0},{id:'demo-loan',name:'範例信貸',type:'personalLoan',balance:300000,annualRate:3,monthlyPayment:6000,remainingMonths:60,investmentAmount:100000}]};paint();}
+function requiredReturnText(result){return result.kind==='rate'?`${decimal.format(result.rate*100)}%`:result.kind==='zero'?'0%':result.kind==='aboveRange'?'超出估算範圍（>100%）':result.kind==='noTime'?'沒有未來投入期間':result.kind==='noCapital'?'尚無可成長的本金或投入':'尚未設定目標';}
+function renderV3(){
+ const d=state.data,c=calculate(d),derived=FinanceCore.derived(d),alloc=FinanceCore.allocation(d),debt=FinanceCore.debtSummary(d),first=isFirstRun()&&!demoActive;
+ ui('welcome').hidden=!first;ui('dashboard').hidden=first;ui('demo-banner').hidden=!demoActive;ui('mobile-edit').hidden=first||ui('wizard').open;document.body.classList.toggle('demo-mode',demoActive);
+ for(const id of ['save-snapshot','export-data','import-data','clear-data'])ui(id).disabled=demoActive;
+ const rr=FinanceCore.requiredReturn(d);ui('required-return').textContent=requiredReturnText(rr);ui('required-return-note').textContent=rr.kind==='zero'?'即使不計投資報酬，依目前投入亦可達成目標。':rr.kind==='rate'?rr.label+'。僅為月末投入、月複利的數學情境比較，不保證未來報酬。':rr.kind==='noTime'?'目標年齡須晚於目前年齡，才計算未來報酬。':rr.kind==='aboveRange'?'在 0%～100% 年化估算範圍內無解，可檢視投入或目標期限。':rr.kind==='noCapital'?'只有報酬率無法讓零本金、零投入達標。':'設定目標金額與年齡後即可估算。';
+ const labels=['一般投資','槓桿投資','投資預備金'];ui('allocation-current').replaceChildren();const bar=document.createElement('div');bar.className='allocation-bar';
+ alloc.ratios.forEach((ratio,i)=>{const part=document.createElement('span');part.className=`asset-${i}`;part.style.width=`${(ratio||0)*100}%`;part.title=`${labels[i]} ${percent(ratio)}`;bar.append(part);});ui('allocation-current').append(bar);
+ const legend=document.createElement('p');legend.className='allocation-legend';legend.textContent=labels.map((label,i)=>`${label} ${percent(alloc.ratios[i])}`).join(' · ');ui('allocation-current').append(legend);
+ ui('allocation-target').textContent=alloc.valid?'目標：'+labels.map((label,i)=>`${label} ${decimal.format(alloc.weights[i])}%`).join(' · '):alloc.kind==='unset'?'尚未設定目標配置；可於進階設定依自己的計畫填寫。':'目標配置合計需為 100%。';
+ ui('allocation-validation').hidden=!(alloc.kind==='invalid'||(alloc.kind==='unset'&&alloc.weights.some(x=>x!==null)));
+ ui('wizard-cash-total').textContent=`總現金 ${money(derived.cash)} · 生活緩衝使用 ${money(derived.cashBuffer)}`;ui('wizard-monthly-note').textContent=`每月固定投入 ${money(d.monthlyInvestment)}（於第一步設定）`;
+ renderRows('cash-analysis',[['日常可動用現金',money(d.cashDaily)],['緊急預備金',money(d.cashEmergency)],['投資預備金',money(d.cashInvestmentReserve)],['指定用途預留',money(d.cashEarmarked)],['總現金',money(derived.cash)],['計入生活緩衝',money(derived.cashBuffer)]]);
+ renderRows('debt-analysis',[['總負債',money(debt.total)],['每月總還款',money(debt.payments)],['投資用途負債',money(debt.investmentDebt)],['加權平均利率',debt.total===0?'無負債':debt.weightedRate===null?'填寫貸款利率後即可估算。':`${decimal.format(debt.weightedRate)}%`],['粗估一年利息成本',debt.interest===null?'填寫貸款利率後即可估算。':money(debt.interest)]]);
+ ui('rebalance-note').textContent=alloc.kind==='valid'?`如果完全不賣既有部位，約需新增 ${money(alloc.additionalCapitalRequired)} 才能回到目標配置。`:alloc.kind==='impossible'?'此目標無法單靠新增資金完全達成，因為目前仍持有目標配置為 0% 的資產。':alloc.kind==='invalid'?'目標配置合計需為 100%。':alloc.kind==='aboveRange'?'目標比例過小，超出可估算範圍，請檢視目標配置。':'先於進階設定填寫三類目標配置。';
+ renderRows('rebalance-additions',alloc.kind==='valid'?labels.map((label,i)=>[`${label}需新增`,money(alloc.additions[i])]):[]);
+ renderRows('monthly-allocation',alloc.monthly?labels.map((label,i)=>[label,money(alloc.monthly[i])]):[]);
+ const basic=['cashDaily','cashEmergency','cashInvestmentReserve','cashEarmarked','income','living','monthlyInvestment','regular'],goal=['currentAge','targetAge','targetAssets','annualReturn','monthlyInvestment'];const basicCount=basic.filter(k=>state.provided.includes(k)).length,goalCount=goal.filter(k=>state.provided.includes(k)&&(k!=='targetAssets'||d[k]>0)&&(k!=='targetAge'||d[k]>d.currentAge)).length,advanced=[state.provided.includes('minRunway'),state.provided.includes('maxPaymentRatio'),state.provided.includes('maxLeverage'),alloc.valid].filter(Boolean).length;
+ ui('completeness').replaceChildren();for(const text of [`基本資料 ${basicCount} / 8`,`目標設定 ${goalCount} / 5`,`進階設定 ${advanced} / 4`,`再補 ${8-basicCount+5-goalCount+4-advanced} 項，可看到更完整分析。選填項目可稍後補充。`]){const p=document.createElement('p');p.textContent=text;ui('completeness').append(p);}
+}
+ui('edit-finances').addEventListener('click',()=>openWizard(0));ui('mobile-edit').addEventListener('click',()=>openWizard(0));ui('start-setup').addEventListener('click',()=>openWizard(0));ui('demo-start').addEventListener('click',enterDemo);ui('demo-exit').addEventListener('click',()=>exitDemo(true));document.querySelectorAll('[data-open-step]').forEach(button=>button.addEventListener('click',()=>openWizard(Number(button.dataset.openStep))));
+ui('close-wizard').addEventListener('click',closeWizard);ui('wizard').addEventListener('cancel',e=>{e.preventDefault();closeWizard();});ui('wizard').addEventListener('close',()=>renderV3());
+ui('wizard-back').addEventListener('click',()=>{showWizardStep(state.wizardStep-1);persist(false);});
+ui('wizard-next').addEventListener('click',()=>{
+ if(!dataValid){ui('wizard-error').hidden=false;return;}
+ const required=state.wizardStep===0?['cashDaily','income','living','monthlyInvestment']:state.wizardStep===1?['regular']:[];
+ const missing=required.find(name=>fields.find(f=>f.name===name).value.trim()==='');if(missing){ui('wizard-error').hidden=false;ui('wizard-error').textContent='必要欄位請填寫金額，沒有也可以填 0。';fields.find(f=>f.name===missing).focus();return;}
+ if(state.wizardStep===2){const a=FinanceCore.allocation(state.data);if(a.weights.some(v=>v!==null)&&!a.valid){ui('wizard-error').hidden=false;ui('wizard-error').textContent='目標配置合計需為 100%。';return;}closeWizard();return;}
+ showWizardStep(state.wizardStep+1);persist(false);
+});
+ui('add-debt').addEventListener('click',()=>{const rows=debtDraftRows();if(rows.length>=100){ui('wizard-error').hidden=false;ui('wizard-error').textContent='最多 100 筆負債。';return;}rows.push({id:crypto.randomUUID?crypto.randomUUID():`debt-${Date.now()}-${Math.random().toString(36).slice(2)}`,name:'',type:'personalLoan',balance:0,annualRate:null,monthlyPayment:0,remainingMonths:null,investmentAmount:0});renderDebtEditor(rows);update();});
+// Small optional explanations stay collapsed unless opened by the user.
+for(const name of ['cashInvestmentReserve','cashEarmarked','multiplier','allocationReserve']){const label=fields.find(f=>f.name===name).closest('label'),details=document.createElement('details'),summary=document.createElement('summary'),p=document.createElement('p');details.className='inline-info';summary.textContent='ⓘ';summary.setAttribute('aria-label','查看欄位說明');p.textContent=label.querySelector('.field-helper').textContent;details.append(summary,p);label.append(details);}
+try{const loaded=readLocal();state=loaded.value;paint();if(loaded.needsMigration)persist(false);}catch(e){state=emptyState();readBlocked=true;lastSaveFailed=true;paint();ui('storage-warning').hidden=false;ui('storage-warning').textContent=`無法讀取既有資料：${e.message}。原始資料未改動，請檢查儲存權限或匯入備份。`;showSaved(false);}
+if(location.protocol==='file:')ui('data-message').textContent='本機檔案模式的保存依瀏覽器而異，建議使用固定網址並定期匯出備份。';
+if(state.setupInProgress&&!readBlocked)setTimeout(()=>openWizard(state.wizardStep),0);

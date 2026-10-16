@@ -26,8 +26,8 @@ function addExplanation(host, text, brief, status='') {
   full.append(summary,p);details.append(control,short,full);wrapper.append(details);host.append(wrapper);
 }
 function explainMetrics() {
-  const d=state.data,c=calculate(d), personal='警戒線是你自行設定的個人參考，並非通用安全值。';
-  let cash=c.runway===null?'目前沒有生活與債務支出，無法估算現金緩衝月數。':`目前現金可支撐 ${decimal.format(c.runway)} 個月生活費與債務還款。你的最低門檻為 ${decimal.format(d.minRunway)} 個月，${c.runway<d.minRunway?`還差 ${decimal.format(d.minRunway-c.runway)} 個月。若收入中斷，流動性可能較不足，可優先累積現金或檢視固定支出。`:`高於或等於門檻 ${decimal.format(c.runway-d.minRunway)} 個月。${c.runway<=d.minRunway*1.2?'目前仍符合最低門檻，但緩衝不算寬裕，可優先維持現金部位。':'可依收入穩定度與家庭支出，定期檢視現金需求。'}`}`;
+  const d=FinanceCore.derived(state.data),c=calculate(d), personal='警戒線是你自行設定的個人參考，並非通用安全值。';
+  let cash=c.runway===null?'目前沒有生活與債務支出，無法估算現金緩衝月數。':`目前現金可支撐 ${decimal.format(c.runway)} 個月生活費與債務還款。你的最低門檻為 ${decimal.format(d.minRunway)} 個月，${c.runway<d.minRunway?`還差 ${decimal.format(d.minRunway-c.runway)} 個月。生活緩衝僅採勾選的現金分類。若收入中斷，流動性可能較不足，可優先累積現金或檢視固定支出。`:`高於或等於門檻 ${decimal.format(c.runway-d.minRunway)} 個月。${c.runway<=d.minRunway*1.2?'目前仍符合最低門檻，但緩衝不算寬裕，可優先維持現金部位。':'可依收入穩定度與家庭支出，定期檢視現金需求。'}`}`;
   const cashStatus=ui('cashRunway').classList.contains('danger')?'danger':ui('cashRunway').classList.contains('caution')?'caution':'';
   const cashBrief=c.runway===null?'目前無支出，暫不計算緩衝月數。':`現金可支撐 ${decimal.format(c.runway)} 個月，${c.runway<d.minRunway?`比 ${decimal.format(d.minRunway)} 個月門檻還差 ${decimal.format(d.minRunway-c.runway)} 個月，可優先補足現金。`:`高於最低 ${decimal.format(d.minRunway)} 個月門檻 ${decimal.format(c.runway-d.minRunway)} 個月，可優先維持現金部位。`}`;
   addExplanation(ui('cashRunway').closest('.kpi'),cash+' '+personal,cashBrief,cashStatus);
@@ -61,7 +61,7 @@ function renderMonthComparison() {
 let summaryURL=null;
 let summaryBusy=false;
 function summaryModel(snapshot, hide) {
-  const d=state.data,c=calculate(d), s=snapshot;
+  const d=FinanceCore.derived(state.data),c=calculate(d), s=snapshot;
   const date=s?s.date:localDate();
   const financial=s?s.financial:c.financial,net=s?s.net:c.net,debt=s?s.debt:c.debt,assets=s?s.net+s.debt:c.assets;
   const goal=s?null:(d.targetAssets>0?d.targetAssets:null);
@@ -79,7 +79,7 @@ function summaryModel(snapshot, hide) {
     ['每月債務還款 / 月收入',s?unavailable:percent(c.paymentRatio)],
     ['投資總市值',money(s?s.investment:c.investment)],['綜合市場槓桿',multiple(s?s.leverage:c.leverage)]
   ];
-  return {date,hide,snapshot:!!s,rows,goal:hide?[]:[['目前金融資產',money(financial)],['目標金融資產',goal?money(goal):s?unavailable:'未設定'],['完成率',goal?percent(financial/goal):s?unavailable:'—'],['目標年齡',s?unavailable:goal?`${d.targetAge} 歲`:'未設定']],stress:hide?[]:[20,30,50].map(drop=>[`大盤 −${drop}%`,s?unavailable:money(c.scenarios.find(r=>r.drop===drop).net)]),notes:s?['歷史快照未記錄現金流、目標與壓力情境，缺項標示未記錄。','總資產以快照淨資產加總負債還原，未混用目前資料。']:hide?['淨資產完成率 = 淨資產 ÷ 目標金融資產（參考同一目標）。','財務目標完成率 = 金融資產 ÷ 目標金融資產。']:['現金、目標與市場情境均依目前有效輸入估算。']};
+  return {date,hide,demo:demoActive,snapshot:!!s,meta:s?null:{allocation:FinanceCore.allocation(state.data),required:FinanceCore.requiredReturn(state.data)},rows,goal:hide?[]:[['目前金融資產',money(financial)],['目標金融資產',goal?money(goal):s?unavailable:'未設定'],['完成率',goal?percent(financial/goal):s?unavailable:'—'],['目標年齡',s?unavailable:goal?`${d.targetAge} 歲`:'未設定']],stress:hide?[]:[20,30,50].map(drop=>[`大盤 −${drop}%`,s?unavailable:money(c.scenarios.find(r=>r.drop===drop).net)]),notes:s?['歷史快照未記錄現金流、目標與壓力情境，缺項標示未記錄。','總資產以快照淨資產加總負債還原，未混用目前資料。']:hide?['淨資產完成率 = 淨資產 ÷ 目標金融資產（參考同一目標）。','財務目標完成率 = 金融資產 ÷ 目標金融資產。']:['現金、目標與市場情境均依目前有效輸入估算。']};
 }
 function drawSummary(model) {
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
@@ -90,7 +90,7 @@ function drawSummary(model) {
   const box=(x,y,w,h)=>{ctx.fillStyle=palette.panel;ctx.beginPath();ctx.roundRect(x,y,w,h,16);ctx.fill();};
   ctx.fillStyle=palette.bg;ctx.fillRect(0,0,1080,1350);
   text('MY FINANCE',60,58,18,palette.accent,600);text('我的財務摘要',60,120,48,palette.text,700);
-  text(model.date.replaceAll('-','/'),60,164,25,palette.muted);text(model.hide?'分享版 · 金額已隱藏':model.snapshot?'每月快照':'個人財務概覽',650,160,24,palette.muted,400,370);
+  text(model.date.replaceAll('-','/'),60,164,25,palette.muted);text(model.demo?'範例資料 · 非本人財務':model.hide?'分享版 · 金額已隱藏':model.snapshot?'每月快照':'個人財務概覽',650,160,24,palette.muted,400,370);
   const cols=2,w=470,gap=20, start=205,h=model.hide?175:112;
   model.rows.forEach(([label,value],i)=>{const x=60+(i%cols)*(w+gap),y=start+Math.floor(i/cols)*(h+14);box(x,y,w,h);text(label,x+22,y+36,23,palette.muted);text(value,x+22,y+(model.hide?106:83),model.hide?44:34,palette.text,650,w-44);});
   let y=model.hide?835:760;
@@ -102,6 +102,7 @@ function drawSummary(model) {
     y+=140;
   }
   model.notes.forEach((note,i)=>text(note,60,y+i*30,21,palette.muted,400,960));
+  if(model.meta){const allocation=model.meta.allocation;const line='投資池配置：'+['一般','槓桿','預備金'].map((name,i)=>`${name} ${percent(allocation.ratios[i])}`).join(' ／ ');text(line,60,1190,20,palette.muted,400,960);text(`達標所需年化報酬率：${requiredReturnText(model.meta.required)}`,60,1220,20,palette.muted,400,960);}
   ctx.strokeStyle=palette.line;ctx.beginPath();ctx.moveTo(60,1250);ctx.lineTo(1020,1250);ctx.stroke();
   text('資料為使用者自行輸入之簡化財務估算，不構成投資建議。',60,1293,23,palette.muted,400,960);
   return canvas;
@@ -126,6 +127,6 @@ async function generateSummary(snapshot=null) {
 ui('generate-summary').addEventListener('click',()=>generateSummary());
 ui('hide-amounts').addEventListener('change',()=>{if(summaryURL){URL.revokeObjectURL(summaryURL);summaryURL=null;}ui('summary-preview').removeAttribute('src');ui('download-summary').removeAttribute('href');ui('image-result').hidden=true;ui('image-status').textContent='分享設定已變更，請重新產生圖片。';});
 window.addEventListener('finance-summary',e=>{const snapshot=state.snapshots.find(s=>s.date===e.detail);if(snapshot)generateSummary(snapshot);});
-window.addEventListener('finance-render',explainMetrics);
+window.addEventListener('finance-render',()=>{explainMetrics();if(summaryURL){URL.revokeObjectURL(summaryURL);summaryURL=null;ui('summary-preview').removeAttribute('src');ui('download-summary').removeAttribute('href');ui('image-result').hidden=true;ui('image-status').textContent='資料已更新，請重新產生摘要圖。';}});
 window.addEventListener('finance-history',renderMonthComparison);
 explainMetrics();
