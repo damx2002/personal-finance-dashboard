@@ -1,7 +1,8 @@
 'use strict';
 const STORAGE_KEY = 'personal-finance-dashboard.v1';
 const form = document.querySelector('#finance-form');
-const fields = [...form.querySelectorAll('input')];
+const goalForm = document.querySelector('#goal-form');
+const fields = [...document.querySelectorAll('input')];
 const defaults = Object.fromEntries(fields.map(field => [field.name, field.name === 'multiplier' ? 2 : 0]));
 const number = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 });
 const decimal = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 });
@@ -28,6 +29,32 @@ function calculate(d) {
       const value = d.regular * (1 - drop / 100) + d.leveraged * Math.max(0, 1 - d.multiplier * drop / 100);
       return { drop, value, equity: value - d.investmentDebt, net: assets - debt - investment + value };
     }) };
+}
+function calculateGoal(d, financial) {
+  const years = d.targetAge - d.currentAge;
+  if (d.targetAssets <= 0 || years < 0) return null;
+  const months = years * 12;
+  const monthlyLog = Math.log1p(d.annualReturn / 100) / 12;
+  const growth = Math.exp(monthlyLog * months);
+  const annuity = monthlyLog === 0 ? months : Math.expm1(monthlyLog * months) / Math.expm1(monthlyLog);
+  const projected = financial * growth + d.monthlyInvestment * annuity;
+  const required = annuity > 0 ? Math.max(0, (d.targetAssets - financial * growth) / annuity) : null;
+  return { years, completion: financial / d.targetAssets, projected,
+    extra: required === null ? null : Math.max(0, Math.ceil(required - d.monthlyInvestment - 1e-9)) };
+}
+function renderGoal(d, financial) {
+  const goal = calculateGoal(d, financial);
+  if (!goal) {
+    renderRows('goal-results', [['目標進度', d.targetAssets <= 0 ? '請先設定目標金融資產' : '請檢查目標年齡']]);
+    return;
+  }
+  const shortfall = goal.projected + 0.000001 < d.targetAssets;
+  renderRows('goal-results', [
+    ['距離目標', `${goal.years} 年`],
+    ['目前完成率', percent(goal.completion)],
+    ['目標年齡預估金融資產', money(goal.projected)],
+    ['還需增加的每月投入', goal.extra === null ? (shortfall ? '已無投入期間，請延後目標年齡' : 'NT$ 0') : money(goal.extra), shortfall ? 'caution' : '']
+  ]);
 }
 function highRisk(value, warning, danger) {
   return value === null ? '' : value > danger ? 'danger' : value > warning ? 'caution' : '';
@@ -69,6 +96,7 @@ function renderRows(id, rows) {
 }
 function render(d) {
   const c = calculate(d);
+  renderGoal(d, c.financial);
   const runwayRisk = c.runway === null ? '' : c.runway < 3 ? 'danger' : c.runway < 6 ? 'caution' : '';
   const leverageRisk = c.equity <= 0 && (c.investment > 0 || d.investmentDebt > 0) ? 'danger' : highRisk(c.leverage, 1.5, 2);
   const debtRisk = c.assets === 0 && c.debt > 0 ? 'danger' : highRisk(c.debtRatio, 0.5, 0.7);
@@ -106,7 +134,7 @@ try {
     if (!saved || typeof saved !== 'object' || Array.isArray(saved)) throw new Error('Invalid saved data');
     for (const field of fields) {
       const value = saved[field.name];
-      if (typeof value === 'number' && Number.isFinite(value) && value >= Number(field.min) && value <= 1e15) initial[field.name] = value;
+      if (typeof value === 'number' && Number.isFinite(value) && value >= Number(field.min) && value <= Number(field.max || 1e15) && (field.step !== '1' || Number.isInteger(value))) initial[field.name] = value;
     }
   }
 } catch {
@@ -119,12 +147,16 @@ function update() {
   const errors = [];
   for (const field of fields) {
     const value = field.value === '' && !field.validity.badInput ? (field.name === 'multiplier' ? 2 : 0) : field.valueAsNumber;
-    const valid = Number.isFinite(value) && value >= Number(field.min) && value <= 1e15;
+    const valid = Number.isFinite(value) && value >= Number(field.min) && value <= Number(field.max || 1e15) && (field.step !== '1' || Number.isInteger(value));
     field.setAttribute('aria-invalid', String(!valid));
-    if (!valid) errors.push(field.name === 'multiplier' ? 'ETF 倍率請輸入大於或等於 1 的數字。' : '金額請輸入 0 到 1,000,000,000,000,000 之間的有效數字。');
+    if (!valid) errors.push(field.name === 'multiplier' ? 'ETF 倍率請輸入大於或等於 1 的數字。' : field.name === 'annualReturn' ? '年化報酬率請輸入 -99% 到 100% 之間的數字。' : field.name.endsWith('Age') ? '年齡請輸入 0 到 120 的整數。' : '金額請輸入 0 到 1,000,000,000,000,000 之間的有效數字。');
     data[field.name] = value;
   }
   if (data.investmentDebt > data.loan) errors.push('投資用途信貸不能超過信貸餘額。');
+  if (data.targetAssets > 0 && data.targetAge < data.currentAge) errors.push('目標年齡不能小於目前年齡。');
+  const goalWarning = document.getElementById('goal-validation');
+  goalWarning.hidden = errors.length === 0;
+  goalWarning.textContent = [...new Set(errors)].join(' ');
   const warning = document.getElementById('validation');
   warning.hidden = errors.length === 0;
   warning.textContent = [...new Set(errors)].join(' ');
@@ -142,6 +174,8 @@ function update() {
 }
 form.addEventListener('input', update);
 form.addEventListener('submit', event => event.preventDefault());
+goalForm.addEventListener('input', update);
+goalForm.addEventListener('submit', event => event.preventDefault());
 document.getElementById('reset').addEventListener('click', () => {
   if (!window.confirm('確定要清除全部財務資料嗎？此操作無法復原。')) return;
   for (const field of fields) field.value = defaults[field.name];

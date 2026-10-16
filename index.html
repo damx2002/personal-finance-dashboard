@@ -16,11 +16,22 @@
 </fieldset><fieldset><legend>02 / 負債</legend>
 <label>房貸餘額<input name="mortgage" type="number" min="0" step="any" inputmode="decimal"></label><label>信貸餘額<input name="loan" type="number" min="0" step="any" inputmode="decimal"></label><label>其中用來投資的信貸<input name="investmentDebt" type="number" min="0" step="any" inputmode="decimal" aria-describedby="debt-hint"></label><small id="debt-hint">這是信貸的一部分，不會再重複計入負債。</small>
 </fieldset><fieldset><legend>03 / 現金流</legend>
-<label>家庭年收入<input name="income" type="number" min="0" step="any" inputmode="decimal"></label><label>每月生活支出<input name="living" type="number" min="0" step="any" inputmode="decimal"></label><label>每月房貸還款<input name="mortgagePayment" type="number" min="0" step="any" inputmode="decimal"></label><label>每月信貸還款<input name="loanPayment" type="number" min="0" step="any" inputmode="decimal"></label><label>每月固定投資金額<input name="monthlyInvestment" type="number" min="0" step="any" inputmode="decimal"></label>
+<label>家庭年收入<input name="income" type="number" min="0" step="any" inputmode="decimal"></label><label>每月生活支出<input name="living" type="number" min="0" step="any" inputmode="decimal"></label><label>每月房貸還款<input name="mortgagePayment" type="number" min="0" step="any" inputmode="decimal"></label><label>每月信貸還款<input name="loanPayment" type="number" min="0" step="any" inputmode="decimal"></label><small>每月固定投資金額與「財務目標」的每月固定投入共用。</small>
 </fieldset><fieldset><legend>04 / 投資</legend>
 <label>一般股票 / ETF 市值<input name="regular" type="number" min="0" step="any" inputmode="decimal"></label><label>槓桿 ETF 市值<input name="leveraged" type="number" min="0" step="any" inputmode="decimal"></label><label>槓桿 ETF 倍率<input name="multiplier" type="number" min="1" step="any" inputmode="decimal"></label><small>例如 2 代表兩倍曝險；一般股票以 1 倍估算。</small>
 </fieldset></form><p id="validation" role="alert" class="warning" hidden></p><button id="reset" type="button">清除全部資料</button><p class="hint">資料不會上傳。清除瀏覽器資料或換裝置後，紀錄不會保留。</p></details>
-<div class="results"><section class="panel"><div class="section-heading"><h2>財務體質</h2><span>FINANCIAL HEALTH</span></div><dl id="health"></dl><p class="note">現金支撐月數只計生活費與債務還款，不含固定投資。每月結餘已扣除固定投資。</p></section>
+<div class="results"><section class="panel goals" aria-labelledby="goals-title"><div class="section-heading"><h2 id="goals-title">財務目標</h2><span>FINANCIAL GOALS</span></div>
+<p class="hint">從目前金融資產出發，看看距離理想生活還有多遠。</p>
+<form id="goal-form" novalidate class="goal-inputs">
+<label>目前年齡<input name="currentAge" type="number" min="0" max="120" step="1" inputmode="numeric"></label>
+<label>目標年齡<input name="targetAge" type="number" min="0" max="120" step="1" inputmode="numeric"></label>
+<label>目標金融資產（NT$）<input name="targetAssets" type="number" min="0" step="any" inputmode="decimal"></label>
+<label>每月固定投入（NT$）<input name="monthlyInvestment" type="number" min="0" step="any" inputmode="decimal" aria-describedby="goal-assumptions"></label>
+<label>預期年化報酬率（%）<input name="annualReturn" type="number" min="-99" max="100" step="any" inputmode="decimal"></label>
+</form><p id="goal-validation" class="warning" role="alert" hidden></p>
+<dl id="goal-results" class="goal-results"></dl>
+<p id="goal-assumptions" class="note">以目前金融資產（現金 + 股票 / ETF）為起點，假設全部資金適用相同報酬率，每月底投入並按月複利；月報酬率 = (1 + 年化報酬率) 的 1/12 次方 − 1。每月固定投入也用於現金流結餘，不會重複扣款。不含通膨、稅費與資產提領，報酬為假設而非保證。年齡以整歲計；目標年齡等於目前年齡時，沒有後續投入期間。</p></section>
+<section class="panel"><div class="section-heading"><h2>財務體質</h2><span>FINANCIAL HEALTH</span></div><dl id="health"></dl><p class="note">現金支撐月數只計生活費與債務還款，不含固定投資。每月結餘已扣除固定投資。</p></section>
 <section class="panel"><div class="section-heading"><h2>投資槓桿</h2><span>MARKET EXPOSURE</span></div><dl id="investment"></dl><p class="note">等效曝險 = 一般投資市值 + 槓桿 ETF 市值 × 倍率。投資淨值小於或等於 0 時，綜合槓桿不具有效意義。</p></section>
 <section class="panel stress"><div class="section-heading"><h2>市場壓力測試</h2><span>STRESS TEST</span></div><p class="hint">如果大盤下跌，資產可能如何變化？</p><div class="table-scroll"><table><thead><tr><th scope="col">大盤跌幅</th><th scope="col">投資市值</th><th scope="col">投資淨值</th><th scope="col">整體淨資產</th></tr></thead><tbody id="scenarios"></tbody></table></div><p class="note">簡化線性情境：一般投資隨大盤變動，槓桿 ETF 依倍率估算，單類市值最低為 0。房屋、現金、其他資產與負債維持不變。此估算不代表槓桿 ETF 長期實際報酬，未計每日重設、波動耗損、利息與交易成本。</p></section></div></div><details class="thresholds"><summary>查看提醒門檻</summary><p>以下為本工具預設參考門檻，非個人化建議。現金緩衝：未滿 3 個月為紅色，3 至未滿 6 個月為黃色；綜合槓桿：超過 2x 為紅色，超過 1.5x 至 2x 為黃色；負債 / 資產：超過 70% 為紅色，超過 50% 至 70% 為黃色；債務還款 / 月收入：超過 50% 為紅色，超過 30% 至 50% 為黃色。負淨資產、負結餘或有負債但無收入 / 資產時為紅色。投資淨值不大於 0 且有投資或投資負債時，槓桿顯示紅色「—」。其餘正常顯示；沒有支出或尚未輸入資料的項目不強行評級。</p></details><footer>讓數字幫助思考。此工具為簡化估算，不構成投資建議。</footer>
 </main></body></html>
