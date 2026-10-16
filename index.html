@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>個人財務儀表板</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<body><main>
+<header><div><p class="eyebrow">MY FINANCE · 我的財務全貌</p><h1>個人財務儀表板</h1><p class="subtitle">掌握現在，為未來留一點餘裕。</p></div><span id="save-status" role="status">資料僅儲存在此瀏覽器</span></header>
+<section class="kpis" aria-label="財務摘要">
+<article class="kpi primary"><span>淨資產</span><strong id="netWorth">—</strong><small>總資產扣除所有負債</small></article>
+<article class="kpi"><span>總資產</span><strong id="totalAssets">—</strong><small>現金、投資、房屋與其他資產</small></article>
+<article class="kpi"><span>總負債</span><strong id="totalDebt">—</strong><small>房貸與信貸餘額</small></article>
+<article class="kpi"><span>綜合市場槓桿</span><strong id="marketLeverage">—</strong><small>等效曝險 ÷ 投資淨值</small></article>
+</section>
+<div class="layout"><aside class="panel inputs"><div class="section-heading"><h2>輸入財務資料</h2><span>新台幣 TWD</span></div><p class="hint">輸入後即時計算、自動儲存。空白視為 0。</p><form id="finance-form" novalidate>
+<fieldset><legend>01 / 資產</legend>
+<label>現金<input name="cash" type="number" min="0" step="any" inputmode="decimal"></label>
+<div class="readonly">股票 / ETF 市值<output id="assetInvestment">—</output><small>由下方兩類投資自動加總</small></div>
+<label>房屋目前估值<input name="home" type="number" min="0" step="any" inputmode="decimal"></label><label>其他資產<input name="other" type="number" min="0" step="any" inputmode="decimal"></label>
+</fieldset><fieldset><legend>02 / 負債</legend>
+<label>房貸餘額<input name="mortgage" type="number" min="0" step="any" inputmode="decimal"></label><label>信貸餘額<input name="loan" type="number" min="0" step="any" inputmode="decimal"></label><label>其中用來投資的信貸<input name="investmentDebt" type="number" min="0" step="any" inputmode="decimal" aria-describedby="debt-hint"></label><small id="debt-hint">這是信貸的一部分，不會再重複計入負債。</small>
+</fieldset><fieldset><legend>03 / 現金流</legend>
+<label>家庭年收入<input name="income" type="number" min="0" step="any" inputmode="decimal"></label><label>每月生活支出<input name="living" type="number" min="0" step="any" inputmode="decimal"></label><label>每月房貸還款<input name="mortgagePayment" type="number" min="0" step="any" inputmode="decimal"></label><label>每月信貸還款<input name="loanPayment" type="number" min="0" step="any" inputmode="decimal"></label><label>每月固定投資金額<input name="monthlyInvestment" type="number" min="0" step="any" inputmode="decimal"></label>
+</fieldset><fieldset><legend>04 / 投資</legend>
+<label>一般股票 / ETF 市值<input name="regular" type="number" min="0" step="any" inputmode="decimal"></label><label>槓桿 ETF 市值<input name="leveraged" type="number" min="0" step="any" inputmode="decimal"></label><label>槓桿 ETF 倍率<input name="multiplier" type="number" min="1" step="any" inputmode="decimal"></label><small>例如 2 代表兩倍曝險；一般股票以 1 倍估算。</small>
+</fieldset></form><p id="validation" role="alert" class="warning" hidden></p><button id="reset" type="button">清除全部資料</button><p class="hint">資料不會上傳。清除瀏覽器資料或換裝置後，紀錄不會保留。</p></aside>
+<div class="results"><section class="panel"><div class="section-heading"><h2>財務體質</h2><span>FINANCIAL HEALTH</span></div><dl id="health"></dl><p class="note">現金支撐月數只計生活費與債務還款，不含固定投資。每月結餘已扣除固定投資。</p></section>
+<section class="panel"><div class="section-heading"><h2>投資槓桿</h2><span>MARKET EXPOSURE</span></div><dl id="investment"></dl><p class="note">等效曝險 = 一般投資市值 + 槓桿 ETF 市值 × 倍率。投資淨值小於或等於 0 時，綜合槓桿不具有效意義。</p></section>
+<section class="panel stress"><div class="section-heading"><h2>市場壓力測試</h2><span>STRESS TEST</span></div><p class="hint">如果大盤下跌，資產可能如何變化？</p><div class="table-scroll"><table><thead><tr><th scope="col">大盤跌幅</th><th scope="col">投資市值</th><th scope="col">投資淨值</th><th scope="col">整體淨資產</th></tr></thead><tbody id="scenarios"></tbody></table></div><p class="note">簡化線性情境：一般投資隨大盤變動，槓桿 ETF 依倍率估算，單類市值最低為 0。房屋、現金、其他資產與負債維持不變。此估算不代表槓桿 ETF 長期實際報酬，未計每日重設、波動耗損、利息與交易成本。</p></section></div></div><footer>讓數字幫助思考。此工具為簡化估算，不構成投資建議。</footer>
+</main></body></html>
