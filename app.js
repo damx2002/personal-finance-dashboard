@@ -9,17 +9,51 @@ const decimal = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 });
 const money = value => `NT$ ${number.format(value)}`;
 const percent = value => value === null ? '—' : `${decimal.format(value * 100)}%`;
 const multiple = value => value === null ? '—' : `${decimal.format(value)}x`;
-// Keep native numeric editing while showing a readable amount beside each input.
+// Amounts display grouping separators; stored data remains numeric.
 const amountFields = fields.filter(field => !['multiplier','currentAge','targetAge','annualReturn','minRunway','maxPaymentRatio','maxLeverage'].includes(field.name));
 const amountNumber = new Intl.NumberFormat('zh-TW', { maximumFractionDigits:20 });
 for (const field of amountFields) {
+  field.type='text';field.inputMode='decimal';field.autocomplete='off';field.spellcheck=false;
   const hint=document.createElement('small');hint.id=`amount-hint-${field.name}`;hint.className='amount-hint';
   field.insertAdjacentElement('afterend',hint);
   field.setAttribute('aria-describedby', [field.getAttribute('aria-describedby'),hint.id].filter(Boolean).join(' '));
 }
+function rawAmount(value) { return value.normalize('NFKC').replace(/,/g,'').trim(); }
+function fieldNumber(field) {
+  if (!amountFields.includes(field)) return field.valueAsNumber;
+  const raw=rawAmount(field.value);
+  return /^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/.test(raw) ? Number(raw) : NaN;
+}
+function formatAmountField(field, keepCaret = false) {
+  const raw=rawAmount(field.value);
+  if(raw==='' || !/^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/.test(raw))return;
+  const start=field.selectionStart,end=field.selectionEnd;
+  const count=index=>field.value.slice(0,index).replace(/,/g,'').length;
+  const startCount=count(start),endCount=count(end);
+  const [integer,fraction]=raw.split('.');
+  field.value=integer.replace(/\B(?=(\d{3})+(?!\d))/g,',')+(fraction===undefined?'':'.'+fraction);
+  if(keepCaret && start!==null){
+    const position=count=>{let seen=0,i=0;while(i<field.value.length && seen<count){if(field.value[i]!==',')seen++;i++;}return i;};
+    field.setSelectionRange(position(startCount),position(endCount));
+  }
+}
+for(const field of amountFields){
+  field.addEventListener('input',e=>{if(!e.isComposing)formatAmountField(field,true);});
+  field.addEventListener('compositionend',()=>{formatAmountField(field,true);update();});
+  // Deleting beside a separator removes the adjacent digit instead of re-inserting the comma.
+  field.addEventListener('beforeinput',e=>{
+    if(field.selectionStart!==field.selectionEnd)return;
+    let at=field.selectionStart;
+    if(e.inputType==='deleteContentBackward' && at>1 && field.value[at-1]===','){
+      e.preventDefault();field.setRangeText('',at-2,at,'end');formatAmountField(field,true);update();
+    } else if(e.inputType==='deleteContentForward' && field.value[at]===',' && at+1<field.value.length){
+      e.preventDefault();field.setRangeText('',at,at+2,'end');formatAmountField(field,true);update();
+    }
+  });
+}
 function refreshAmountHints() {
   for (const field of amountFields) {
-    const hint=document.getElementById(`amount-hint-${field.name}`),value=field.valueAsNumber;
+    const hint=document.getElementById(`amount-hint-${field.name}`),value=fieldNumber(field);
     if(field.value===''&&!field.validity.badInput){hint.textContent='NT$ 0（空白視為 0）';continue;}
     if(!Number.isFinite(value)||value<0||value>1e15){hint.textContent='請輸入有效範圍內的非負金額';continue;}
     const units=value>=1e8?` · 約 ${decimal.format(value/1e8)} 億元`:value>=1e4?` · 約 ${decimal.format(value/1e4)} 萬元`:'';
@@ -242,6 +276,7 @@ function persist(touch = true) {
 function paint() {
   for (const field of fields) { field.value = state.draft ? state.draft[field.name] : state.data[field.name]; field.setAttribute('aria-invalid','false'); }
   for (const id of ['validation','goal-validation']) ui(id).hidden = true;
+  for(const field of amountFields)formatAmountField(field);
   refreshAmountHints();
   dataValid = !state.draft; render(state.data); renderHistory(); showSaved();
   if (state.draft) {
@@ -253,7 +288,7 @@ function update() {
   try {
     const input = {};
     for (const field of fields) {
-      const value = field.value === '' && !field.validity.badInput ? defaults[field.name] : field.valueAsNumber;
+      const value = field.value === '' && !field.validity.badInput ? defaults[field.name] : fieldNumber(field);
       field.setAttribute('aria-invalid', String(!Number.isFinite(value) || value < Number(field.min) || value > Number(field.max || 1e15) || (field.step === '1' && !Number.isInteger(value))));
       input[field.name] = value;
     }

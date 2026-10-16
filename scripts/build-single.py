@@ -1,7 +1,9 @@
 """Rebuild the standalone HTML from the maintained HTML, CSS and JS files."""
 from pathlib import Path
 root = Path(__file__).resolve().parent.parent
+import re
 html = (root / 'index.html').read_text()
+html = re.sub(r'(style\.css|app\.js|summary\.js)\?[^\"]*', r'\1', html)
 html = html.replace('<link rel="stylesheet" href="style.css">', '<style>' + (root / 'style.css').read_text() + '</style>')
 html = html.replace('<script src="app.js" defer></script>', '')
 html = html.replace('<script src="summary.js" defer></script>', '')

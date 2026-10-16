@@ -6,7 +6,7 @@ const http=require('node:http');
 const os=require('node:os');
 (async()=>{
  const root=path.resolve(__dirname,'..');
- const server=http.createServer(async(req,res)=>{const name=req.url.slice(1)||'index.html';if(!['index.html','dashboard.html','style.css','app.js','summary.js'].includes(name)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html');res.end(await fs.readFile(path.join(root,name)));});
+ const server=http.createServer(async(req,res)=>{const name=req.url.split('?')[0].slice(1)||'index.html';if(!['index.html','dashboard.html','style.css','app.js','summary.js'].includes(name)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html');res.end(await fs.readFile(path.join(root,name)));});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}/`;
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
  try{
@@ -18,9 +18,15 @@ const os=require('node:os');
    await page.locator('.inputs summary').click();
    const inputs={cash:120000,home:5000000,regular:800000,leveraged:200000,multiplier:2,mortgage:2000000,loan:400000,investmentDebt:300000,income:1200000,living:20000,mortgagePayment:35000,loanPayment:10000,currentAge:30,targetAge:50,targetAssets:10000000,monthlyInvestment:10000};
    for(const[k,v]of Object.entries(inputs))await page.locator(`[name="${k}"]`).fill(String(v));
+   const cashInput=page.locator('[name="cash"]');
+   await cashInput.fill('');await cashInput.pressSequentially('1400000');assert.equal(await cashInput.inputValue(),'1,400,000');
+   await cashInput.fill('1234567');await cashInput.evaluate(el=>el.setSelectionRange(2,3));await cashInput.press('9');assert.equal(await cashInput.inputValue(),'1,934,567');assert.equal(await cashInput.evaluate(el=>el.selectionStart),3);
+   await cashInput.evaluate(el=>el.setSelectionRange(2,2));await cashInput.press('Backspace');assert.equal(await cashInput.inputValue(),'934,567');
+   await cashInput.fill('12,000,000.50');assert.equal(await cashInput.inputValue(),'12,000,000.50');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('personal-finance-dashboard.v2')).data.cash),12000000.5);
+   await cashInput.fill('not a number');assert.ok((await page.locator('#save-status').innerText()).includes('草稿'));await cashInput.fill('120000');
    await page.locator('#cashRunway').locator('..').locator('.metric-explanation summary').click();const cash=await page.locator('#cashRunway').locator('..').locator('.metric-explanation p').innerText();assert.ok(cash.includes('還差'));assert.ok(cash.includes('個人參考'));
    const payment=page.locator('#health > div').filter({has:page.getByText('每月債務還款 / 月收入',{exact:true})});await payment.locator('.metric-explanation summary').click();assert.ok((await payment.locator('.metric-explanation p').innerText()).includes('45%'));assert.ok((await payment.locator('.metric-explanation p').innerText()).includes('5 個百分點'));
-   await page.reload();assert.equal(await page.locator('[name="cash"]').inputValue(),'120000');
+   await page.reload();assert.equal(await page.locator('[name="cash"]').inputValue(),'120,000');
    // Record all canvas text: verifies what actually gets drawn, not hidden DOM.
    await page.evaluate(()=>{window.drawn=[];const original=CanvasRenderingContext2D.prototype.fillText;CanvasRenderingContext2D.prototype.fillText=function(t,...args){window.drawn.push(t);return original.call(this,t,...args);};});
    const downloadPromise=page.waitForEvent('download');await page.locator('#generate-summary').click();const download=await downloadPromise;const buffer=await fs.readFile(await download.path());
