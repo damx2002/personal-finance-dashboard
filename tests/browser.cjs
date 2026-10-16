@@ -39,6 +39,9 @@ async function main() {
       const fill=async(n,v)=>page.locator(`[name="${n}"]`).fill(String(v));
       const data={cash:600000,home:10000000,other:100000,mortgage:6000000,loan:500000,investmentDebt:300000,income:1200000,living:20000,mortgagePayment:25000,loanPayment:5000,monthlyInvestment:10000,regular:800000,leveraged:200000,multiplier:2,currentAge:30,targetAge:50,targetAssets:10000000,annualReturn:7};
       for(const[k,v]of Object.entries(data))await fill(k,v);
+      assert.equal(await page.locator('#amount-hint-cash').textContent(),'NT$ 600,000 · 約 60 萬元');
+      assert.equal(await page.locator('#amount-hint-multiplier').count(),0);
+      assert.ok((await page.locator('[name="monthlyInvestment"]').getAttribute('aria-describedby')).includes('goal-assumptions'));
       const settings=page.locator('details').filter({has:page.locator('#settings-form')});await settings.locator('summary').click();
       await fill('minRunway',8);await fill('maxPaymentRatio',45);await fill('maxLeverage',2.5);
       assert.equal(await page.locator('#netWorth').innerText(),'NT$ 5,200,000');
@@ -91,6 +94,7 @@ async function main() {
       await page.evaluate(()=>{localStorage.removeItem('personal-finance-dashboard.v2');localStorage.setItem('personal-finance-dashboard.v1',JSON.stringify({cash:123456,multiplier:2,monthlyInvestment:2000}));});
       await page.reload();assert.equal(await page.locator('#financialAssets').innerText(),'NT$ 123,456');assert.equal(await page.locator('[name="monthlyInvestment"]').inputValue(),'2000');assert.equal(await page.locator('[name="minRunway"]').inputValue(),'6');
       assert.ok(await page.evaluate(()=>localStorage.getItem('personal-finance-dashboard.v1')!==null));
+      await page.locator('.inputs summary').click();await fill('cash',12000000);assert.equal(await page.locator('#amount-hint-cash').textContent(),'NT$ 12,000,000 · 約 1,200 萬元');assert.equal(await page.locator('[name="cash"]').inputValue(),'12000000');await page.reload();assert.equal(await page.locator('#amount-hint-cash').textContent(),'NT$ 12,000,000 · 約 1,200 萬元');
       // Read permission failures and corrupt data must not be silently reported as saved.
       await page.addInitScript(()=>{Storage.prototype.getItem=function(){throw new DOMException('blocked','SecurityError');};});await page.reload();assert.ok(await page.locator('#storage-warning').isVisible());
       await context.close();context=null;

@@ -27,6 +27,8 @@
 .privacy-note{font-size:12px;color:#70817e;line-height:1.8;margin:-12px 0 26px}#storage-warning{margin-bottom:24px}.file-button:focus-within{outline:2px solid #44846a}
 .metric-explanation{font-weight:400;text-align:left;width:100%;font-size:12px;margin-top:8px}.metric-explanation summary{cursor:pointer;color:#58766a;font-size:11px}.metric-explanation p{font-size:12px;line-height:1.8;margin:10px 0 0;color:#60776b}.kpi .metric-explanation{margin-top:0}dl>div:has(.metric-explanation){flex-wrap:wrap}.share-toolbar{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:0 0 16px}.inline-check{display:flex;align-items:center;gap:8px;margin:0;font-size:12px}.inline-check input{width:16px;height:16px;margin:0}#image-result{margin-bottom:24px}#image-result a{color:#386f5b;font-size:13px}#summary-preview{display:block;width:100%;max-width:440px;height:auto;border-radius:12px;margin:15px 0}.snapshot-summary{margin-right:8px}#month-comparison{margin:0 0 18px}#image-status{margin:0 0 16px}
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;background:#101c18;color:#dfebe4}.panel,.kpi{background:#1b2b24;border-color:#33483c}input,select,button,.file-button{background:#15231d;border-color:#425b4b;color:#e1eae4}button:hover{background:#2c4336}.note,.scenario-card,th{background:#22372b;color:#b4c7ba}dt,.hint,small,.privacy-note,.subtitle,.metric-explanation p{color:#adc1b3}.kpi span,.kpi small,.metric-explanation summary,.section-heading>span{color:#b0c9b9}dl>div,td,fieldset{border-color:#344a3c}#save-status{background:#253f2e;border-color:#456b50;color:#c6e0c9}.danger{color:#ff9b8b}.caution{color:#edc76e}.warning{background:#422d25;color:#ffb5a2}.readonly output,#image-result a{color:#b3d6bd}.history-svg text{fill:#b1c6b8}.history-svg .axis{stroke:#3c5544}.history-svg .trend{stroke:#a9cfb5}.history-svg circle{fill:#a9cfb5}}
+
+.amount-hint{display:block;margin-top:6px;font-size:11px;line-height:1.6;color:#667e70;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}label:focus-within .amount-hint{color:#386f5b}@media(prefers-color-scheme:dark){.amount-hint{color:#b0c9b9}label:focus-within .amount-hint{color:#cce5d3}}
 </style></head>
 <body><main>
 <header><div><p class="eyebrow">MY FINANCE · 我的財務全貌</p><h1>個人財務儀表板</h1><p class="subtitle">掌握現在，為未來留一點餘裕。</p></div><div class="save-info"><span id="save-status" role="status">尚未輸入資料</span><small id="saved-at">最後儲存：—</small></div></header><p class="privacy-note">所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。<br>清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。</p><p id="storage-warning" class="warning" role="alert" hidden></p>
@@ -87,6 +89,23 @@ const decimal = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 });
 const money = value => `NT$ ${number.format(value)}`;
 const percent = value => value === null ? '—' : `${decimal.format(value * 100)}%`;
 const multiple = value => value === null ? '—' : `${decimal.format(value)}x`;
+// Keep native numeric editing while showing a readable amount beside each input.
+const amountFields = fields.filter(field => !['multiplier','currentAge','targetAge','annualReturn','minRunway','maxPaymentRatio','maxLeverage'].includes(field.name));
+const amountNumber = new Intl.NumberFormat('zh-TW', { maximumFractionDigits:20 });
+for (const field of amountFields) {
+  const hint=document.createElement('small');hint.id=`amount-hint-${field.name}`;hint.className='amount-hint';
+  field.insertAdjacentElement('afterend',hint);
+  field.setAttribute('aria-describedby', [field.getAttribute('aria-describedby'),hint.id].filter(Boolean).join(' '));
+}
+function refreshAmountHints() {
+  for (const field of amountFields) {
+    const hint=document.getElementById(`amount-hint-${field.name}`),value=field.valueAsNumber;
+    if(field.value===''&&!field.validity.badInput){hint.textContent='NT$ 0（空白視為 0）';continue;}
+    if(!Number.isFinite(value)||value<0||value>1e15){hint.textContent='請輸入有效範圍內的非負金額';continue;}
+    const units=value>=1e8?` · 約 ${decimal.format(value/1e8)} 億元`:value>=1e4?` · 約 ${decimal.format(value/1e4)} 萬元`:'';
+    hint.textContent=`NT$ ${amountNumber.format(value)}${units}`;
+  }
+}
 function calculate(d) {
   const investment = d.regular + d.leveraged;
   const assets = d.cash + investment + d.home + d.other;
@@ -303,12 +322,14 @@ function persist(touch = true) {
 function paint() {
   for (const field of fields) { field.value = state.draft ? state.draft[field.name] : state.data[field.name]; field.setAttribute('aria-invalid','false'); }
   for (const id of ['validation','goal-validation']) ui(id).hidden = true;
+  refreshAmountHints();
   dataValid = !state.draft; render(state.data); renderHistory(); showSaved();
   if (state.draft) {
     for (const id of ['validation','goal-validation']) { ui(id).hidden=false;ui(id).textContent='已恢復尚未完成的輸入；結果顯示上一筆有效資料，請修正輸入。'; }
   }
 }
 function update() {
+  refreshAmountHints();
   try {
     const input = {};
     for (const field of fields) {

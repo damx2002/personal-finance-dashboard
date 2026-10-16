@@ -9,6 +9,23 @@ const decimal = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 });
 const money = value => `NT$ ${number.format(value)}`;
 const percent = value => value === null ? '—' : `${decimal.format(value * 100)}%`;
 const multiple = value => value === null ? '—' : `${decimal.format(value)}x`;
+// Keep native numeric editing while showing a readable amount beside each input.
+const amountFields = fields.filter(field => !['multiplier','currentAge','targetAge','annualReturn','minRunway','maxPaymentRatio','maxLeverage'].includes(field.name));
+const amountNumber = new Intl.NumberFormat('zh-TW', { maximumFractionDigits:20 });
+for (const field of amountFields) {
+  const hint=document.createElement('small');hint.id=`amount-hint-${field.name}`;hint.className='amount-hint';
+  field.insertAdjacentElement('afterend',hint);
+  field.setAttribute('aria-describedby', [field.getAttribute('aria-describedby'),hint.id].filter(Boolean).join(' '));
+}
+function refreshAmountHints() {
+  for (const field of amountFields) {
+    const hint=document.getElementById(`amount-hint-${field.name}`),value=field.valueAsNumber;
+    if(field.value===''&&!field.validity.badInput){hint.textContent='NT$ 0（空白視為 0）';continue;}
+    if(!Number.isFinite(value)||value<0||value>1e15){hint.textContent='請輸入有效範圍內的非負金額';continue;}
+    const units=value>=1e8?` · 約 ${decimal.format(value/1e8)} 億元`:value>=1e4?` · 約 ${decimal.format(value/1e4)} 萬元`:'';
+    hint.textContent=`NT$ ${amountNumber.format(value)}${units}`;
+  }
+}
 function calculate(d) {
   const investment = d.regular + d.leveraged;
   const assets = d.cash + investment + d.home + d.other;
@@ -225,12 +242,14 @@ function persist(touch = true) {
 function paint() {
   for (const field of fields) { field.value = state.draft ? state.draft[field.name] : state.data[field.name]; field.setAttribute('aria-invalid','false'); }
   for (const id of ['validation','goal-validation']) ui(id).hidden = true;
+  refreshAmountHints();
   dataValid = !state.draft; render(state.data); renderHistory(); showSaved();
   if (state.draft) {
     for (const id of ['validation','goal-validation']) { ui(id).hidden=false;ui(id).textContent='已恢復尚未完成的輸入；結果顯示上一筆有效資料，請修正輸入。'; }
   }
 }
 function update() {
+  refreshAmountHints();
   try {
     const input = {};
     for (const field of fields) {
