@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>個人財務儀表板</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><link rel="icon" href="data:,"><title>個人財務儀表板</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
 <body><main>
-<header><div><p class="eyebrow">MY FINANCE · 我的財務全貌</p><h1>個人財務儀表板</h1><p class="subtitle">掌握現在，為未來留一點餘裕。</p></div><span id="save-status" role="status">資料僅儲存在此瀏覽器</span></header>
+<header><div><p class="eyebrow">MY FINANCE · 我的財務全貌</p><h1>個人財務儀表板</h1><p class="subtitle">掌握現在，為未來留一點餘裕。</p></div><div class="save-info"><span id="save-status" role="status">尚未輸入資料</span><small id="saved-at">最後儲存：—</small></div></header><p class="privacy-note">所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。<br>清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。</p><p id="storage-warning" class="warning" role="alert" hidden></p>
 <section class="kpis" aria-label="財務摘要">
 <article class="kpi"><span>淨資產</span><strong id="netWorth">—</strong><small>總資產扣除所有負債</small></article>
 <article class="kpi"><span>金融資產</span><strong id="financialAssets">—</strong><small>現金與股票 / ETF 市值</small></article>
@@ -19,7 +19,7 @@
 <label>家庭年收入<input name="income" type="number" min="0" step="any" inputmode="decimal"></label><label>每月生活支出<input name="living" type="number" min="0" step="any" inputmode="decimal"></label><label>每月房貸還款<input name="mortgagePayment" type="number" min="0" step="any" inputmode="decimal"></label><label>每月信貸還款<input name="loanPayment" type="number" min="0" step="any" inputmode="decimal"></label><small>每月固定投資金額與「財務目標」的每月固定投入共用。</small>
 </fieldset><fieldset><legend>04 / 投資</legend>
 <label>一般股票 / ETF 市值<input name="regular" type="number" min="0" step="any" inputmode="decimal"></label><label>槓桿 ETF 市值<input name="leveraged" type="number" min="0" step="any" inputmode="decimal"></label><label>槓桿 ETF 倍率<input name="multiplier" type="number" min="1" step="any" inputmode="decimal"></label><small>例如 2 代表兩倍曝險；一般股票以 1 倍估算。</small>
-</fieldset></form><p id="validation" role="alert" class="warning" hidden></p><button id="reset" type="button">清除全部資料</button><p class="hint">資料不會上傳。清除瀏覽器資料或換裝置後，紀錄不會保留。</p></details>
+</fieldset></form><p id="validation" role="alert" class="warning" hidden></p><p class="hint">所有資料保存在此裝置瀏覽器。若要換裝置，請先匯出備份，再到新裝置匯入。</p></details>
 <div class="results"><section class="panel goals" aria-labelledby="goals-title"><div class="section-heading"><h2 id="goals-title">財務目標</h2><span>FINANCIAL GOALS</span></div>
 <p class="hint">從目前金融資產出發，看看距離理想生活還有多遠。</p>
 <form id="goal-form" novalidate class="goal-inputs">
@@ -30,8 +30,21 @@
 <label>預期年化報酬率（%）<input name="annualReturn" type="number" min="-99" max="100" step="any" inputmode="decimal"></label>
 </form><p id="goal-validation" class="warning" role="alert" hidden></p>
 <dl id="goal-results" class="goal-results"></dl>
+<details class="subsection"><summary>比較年化報酬情境</summary><div id="return-scenarios" class="scenario-grid"></div><p class="hint">保守 5%、基準 8%、積極 12% 與上方自訂報酬率，皆使用相同起始金融資產與每月投入。</p></details>
 <p id="goal-assumptions" class="note">以目前金融資產（現金 + 股票 / ETF）為起點，假設全部資金適用相同報酬率，每月底投入並按月複利；月報酬率 = (1 + 年化報酬率) 的 1/12 次方 − 1。每月固定投入也用於現金流結餘，不會重複扣款。不含通膨、稅費與資產提領，報酬為假設而非保證。年齡以整歲計；目標年齡等於目前年齡時，沒有後續投入期間。</p></section>
 <section class="panel"><div class="section-heading"><h2>財務體質</h2><span>FINANCIAL HEALTH</span></div><dl id="health"></dl><p class="note">現金支撐月數只計生活費與債務還款，不含固定投資。每月結餘已扣除固定投資。</p></section>
 <section class="panel"><div class="section-heading"><h2>投資槓桿</h2><span>MARKET EXPOSURE</span></div><dl id="investment"></dl><p class="note">等效曝險 = 一般投資市值 + 槓桿 ETF 市值 × 倍率。投資淨值小於或等於 0 時，綜合槓桿不具有效意義。</p></section>
-<section class="panel stress"><div class="section-heading"><h2>市場壓力測試</h2><span>STRESS TEST</span></div><p class="hint">如果大盤下跌，資產可能如何變化？</p><div class="table-scroll"><table><thead><tr><th scope="col">大盤跌幅</th><th scope="col">投資市值</th><th scope="col">投資淨值</th><th scope="col">整體淨資產</th></tr></thead><tbody id="scenarios"></tbody></table></div><p class="note">簡化線性情境：一般投資隨大盤變動，槓桿 ETF 依倍率估算，單類市值最低為 0。房屋、現金、其他資產與負債維持不變。此估算不代表槓桿 ETF 長期實際報酬，未計每日重設、波動耗損、利息與交易成本。</p></section></div></div><details class="thresholds"><summary>查看提醒門檻</summary><p>以下為本工具預設參考門檻，非個人化建議。現金緩衝：未滿 3 個月為紅色，3 至未滿 6 個月為黃色；綜合槓桿：超過 2x 為紅色，超過 1.5x 至 2x 為黃色；負債 / 資產：超過 70% 為紅色，超過 50% 至 70% 為黃色；債務還款 / 月收入：超過 50% 為紅色，超過 30% 至 50% 為黃色。負淨資產、負結餘或有負債但無收入 / 資產時為紅色。投資淨值不大於 0 且有投資或投資負債時，槓桿顯示紅色「—」。其餘正常顯示；沒有支出或尚未輸入資料的項目不強行評級。</p></details><footer>讓數字幫助思考。此工具為簡化估算，不構成投資建議。</footer>
+<section class="panel stress"><div class="section-heading"><h2>市場壓力測試</h2><span>STRESS TEST</span></div><p class="hint">如果大盤下跌，資產可能如何變化？</p><p id="break-even" class="note"></p><div class="table-scroll"><table><thead><tr><th scope="col">大盤跌幅</th><th scope="col">投資市值</th><th scope="col">投資淨值</th><th scope="col">整體淨資產</th></tr></thead><tbody id="scenarios"></tbody></table></div><p class="note">簡化線性情境：一般投資隨大盤變動，槓桿 ETF 依倍率估算，單類市值最低為 0。房屋、現金、其他資產與負債維持不變。此估算不代表槓桿 ETF 長期實際報酬，未計每日重設、波動耗損、利息與交易成本。</p></section></div></div><details class="panel utility" id="history-panel"><summary>每月財務快照與趨勢</summary>
+<p class="hint">每月手動記錄一次；同月份重存會先要求確認。快照記錄當時數值，不隨目前輸入改變。</p>
+<div class="toolbar"><label>快照日期<input id="snapshot-date" type="date"></label><button id="save-snapshot" type="button">儲存本月快照</button><label>趨勢指標<select id="chart-metric"><option value="net">淨資產</option><option value="financial">金融資產</option><option value="investment">投資市值</option><option value="debt">總負債</option><option value="leverage">綜合市場槓桿</option></select></label></div>
+<div id="history-chart"></div><div class="table-scroll"><table><thead><tr><th>日期</th><th>淨資產</th><th>金融資產</th><th>投資市值</th><th>總負債</th><th>綜合槓桿</th><th>操作</th></tr></thead><tbody id="snapshot-rows"></tbody></table></div></details>
+<details class="panel utility"><summary>警戒線與資料備份</summary>
+<form id="settings-form" novalidate class="settings-grid">
+<label>最低現金緩衝（月）<input name="minRunway" type="number" min="0.1" max="120" step="any" value="6"></label>
+<label>最高債務月付比（%）<input name="maxPaymentRatio" type="number" min="0.1" max="100" step="any" value="40"></label>
+<label>最高綜合市場槓桿（x）<input name="maxLeverage" type="number" min="0.1" max="100" step="any" value="2"></label>
+</form><p class="hint">現金低於最低門檻、還款比或槓桿高於最高門檻為紅色；現金在門檻至 1.2 倍、還款比或槓桿在門檻的 80% 至 100% 為黃色。零分母不強行評級，但有債務無收入、投資淨值不大於零等狀況仍提醒。設定僅供個人參考。</p>
+<div class="toolbar"><button id="export-data" type="button">匯出備份（JSON）</button><label class="file-button">匯入備份（JSON）<input id="import-data" type="file" accept=".json,application/json"></label><button id="clear-data" type="button">清除本機資料</button></div>
+<p class="hint">JSON 含個人財務資料，請妥善保存。匯入會先檢查格式並要求確認。備份包含財務輸入、目標、警戒線、快照與未完成輸入。</p><p id="data-message" role="status"></p></details>
+<footer>讓數字幫助思考。此工具為簡化估算，不構成投資建議。</footer>
 </main></body></html>

@@ -2,8 +2,8 @@
 const STORAGE_KEY = 'personal-finance-dashboard.v1';
 const form = document.querySelector('#finance-form');
 const goalForm = document.querySelector('#goal-form');
-const fields = [...document.querySelectorAll('input')];
-const defaults = Object.fromEntries(fields.map(field => [field.name, field.name === 'multiplier' ? 2 : 0]));
+const fields = [...document.querySelectorAll('#finance-form input, #goal-form input, #settings-form input')];
+const defaults = Object.fromEntries(fields.map(field => [field.name, field.name === 'multiplier' ? 2 : field.name === 'minRunway' ? 6 : field.name === 'maxPaymentRatio' ? 40 : field.name === 'maxLeverage' ? 2 : 0]));
 const number = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 0 });
 const decimal = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 });
 const money = value => `NT$ ${number.format(value)}`;
@@ -42,7 +42,22 @@ function calculateGoal(d, financial) {
   return { years, completion: financial / d.targetAssets, projected,
     extra: required === null ? null : Math.max(0, Math.ceil(required - d.monthlyInvestment - 1e-9)) };
 }
+function breakEven(d) {
+  const initial = d.regular + d.leveraged;
+  if (initial === 0 && d.investmentDebt === 0) return null;
+  if (initial <= d.investmentDebt) return 0;
+  const equityAt = drop => d.regular * (1 - drop) + d.leveraged * Math.max(0, 1 - d.multiplier * drop) - d.investmentDebt;
+  let low = 0, high = 1;
+  for (let i = 0; i < 80; i++) { const mid = (low + high) / 2; if (equityAt(mid) > 0) low = mid; else high = mid; }
+  return high;
+}
 function renderGoal(d, financial) {
+  document.getElementById('return-scenarios').replaceChildren(...[[5, '保守'], [8, '基準'], [12, '積極'], [d.annualReturn, '自訂']].map(([rate, label]) => {
+    const card = document.createElement('div'); card.className = 'scenario-card';
+    const title = document.createElement('span'); title.textContent = `${label} ${decimal.format(rate)}%`;
+    const value = document.createElement('strong'); const result = calculateGoal({ ...d, annualReturn: rate }, financial);
+    value.textContent = result ? money(result.projected) : '請先設定目標'; card.append(title, value); return card;
+  }));
   const goal = calculateGoal(d, financial);
   if (!goal) {
     renderRows('goal-results', [['目標進度', d.targetAssets <= 0 ? '請先設定目標金融資產' : '請檢查目標年齡']]);
@@ -53,7 +68,7 @@ function renderGoal(d, financial) {
     ['距離目標', `${goal.years} 年`],
     ['目前完成率', percent(goal.completion)],
     ['目標年齡預估金融資產', money(goal.projected)],
-    ['還需增加的每月投入', goal.extra === null ? (shortfall ? '已無投入期間，請延後目標年齡' : 'NT$ 0') : money(goal.extra), shortfall ? 'caution' : '']
+    ['還需增加的每月投入', goal.extra === null ? (shortfall ? '已無投入期間，請延後目標年齡' : 'NT$ 0') : money(goal.extra), '']
   ]);
 }
 function highRisk(value, warning, danger) {
@@ -97,10 +112,10 @@ function renderRows(id, rows) {
 function render(d) {
   const c = calculate(d);
   renderGoal(d, c.financial);
-  const runwayRisk = c.runway === null ? '' : c.runway < 3 ? 'danger' : c.runway < 6 ? 'caution' : '';
-  const leverageRisk = c.equity <= 0 && (c.investment > 0 || d.investmentDebt > 0) ? 'danger' : highRisk(c.leverage, 1.5, 2);
-  const debtRisk = c.assets === 0 && c.debt > 0 ? 'danger' : highRisk(c.debtRatio, 0.5, 0.7);
-  const paymentRisk = d.income === 0 && (d.mortgagePayment + d.loanPayment) > 0 ? 'danger' : highRisk(c.paymentRatio, 0.3, 0.5);
+  const runwayRisk = c.runway === null ? '' : c.runway < d.minRunway ? 'danger' : c.runway <= d.minRunway * 1.2 ? 'caution' : '';
+  const leverageRisk = c.equity <= 0 && (c.investment > 0 || d.investmentDebt > 0) ? 'danger' : highRisk(c.leverage, d.maxLeverage * 0.8 - 1e-12, d.maxLeverage);
+  const debtRisk = c.assets === 0 && c.debt > 0 ? 'danger' : '';
+  const paymentRisk = d.income === 0 && (d.mortgagePayment + d.loanPayment) > 0 ? 'danger' : highRisk(c.paymentRatio, d.maxPaymentRatio / 100 * 0.8 - 1e-12, d.maxPaymentRatio / 100);
   setText('netWorth', money(c.net), c.net < 0 ? 'danger' : '');
   setText('financialAssets', money(c.financial));
   setText('cashRunway', c.runway === null ? '—' : `${decimal.format(c.runway)} 個月`, runwayRisk);
@@ -117,6 +132,8 @@ function render(d) {
     ['投資內含曝險倍數', multiple(c.embedded)], ['投資用途負債 / 投資市值', percent(c.investmentDebtRatio)],
     ['扣除投資負債後的淨值', money(c.equity), c.equity < 0 ? 'danger' : '']
   ]);
+  const zero = breakEven(d);
+  setText('break-even', zero === null ? '投資淨值歸零跌幅：尚無投資資料' : zero === 0 ? '投資淨值已為零或負數（約 0% 跌幅）' : `投資淨值歸零的約略市場跌幅：−${decimal.format(zero * 100)}%（同下方簡化線性模型）`);
   document.getElementById('scenarios').replaceChildren(...c.scenarios.map(scenario => {
     const row = document.createElement('tr');
     [`-${scenario.drop}%`, money(scenario.value), money(scenario.equity), money(scenario.net)].forEach((text, index) => {
@@ -126,58 +143,185 @@ function render(d) {
     }); return row;
   }));
 }
-let initial = { ...defaults };
-try {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw !== null) {
-    const saved = JSON.parse(raw);
-    if (!saved || typeof saved !== 'object' || Array.isArray(saved)) throw new Error('Invalid saved data');
+// A versioned envelope keeps values, snapshots and save metadata together.
+const LOCAL_KEY = 'personal-finance-dashboard.v2';
+const activeKey = LOCAL_KEY;
+let state;
+let dataValid = true;
+let lastSaveFailed = false;
+const ui = id => document.getElementById(id);
+const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+function validDate(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+}
+function validateData(source, allowMissing = false) {
+  if (!source || typeof source !== 'object' || Array.isArray(source) || !Object.hasOwn(source, 'cash')) throw new Error('資料欄位格式不正確');
+  const data = {};
+  for (const field of fields) {
+    const v = source[field.name] === undefined && allowMissing ? defaults[field.name] : source[field.name];
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < Number(field.min) || v > Number(field.max || 1e15) || (field.step === '1' && !Number.isInteger(v))) throw new Error(`「${field.closest('label')?.childNodes[0].textContent || field.name}」數值不正確`);
+    data[field.name] = v;
+  }
+  if (data.investmentDebt > data.loan) throw new Error('投資用途信貸不能超過信貸餘額');
+  if (data.targetAssets > 0 && data.targetAge < data.currentAge) throw new Error('目標年齡不能小於目前年齡');
+  return data;
+}
+function emptyState() { return { schemaVersion:2, data:{...defaults}, snapshots:[], savedAt:null, draft:null }; }
+function validateEnvelope(raw) {
+  if (!raw || raw.schemaVersion !== 2) throw new Error('不支援的備份版本');
+  const data = validateData(raw.data, true);
+  if (!Array.isArray(raw.snapshots) || raw.snapshots.length > 600) throw new Error('快照格式不正確或超過 600 筆');
+  const months = new Set();
+  const snapshots = raw.snapshots.map(s => {
+    if (!s || !validDate(s.date) || months.has(s.date.slice(0,7))) throw new Error('快照日期不正確或月份重複');
+    months.add(s.date.slice(0,7));
+    const item = {date:s.date};
+    for (const key of ['net','financial','investment','debt','leverage']) {
+      const v = s[key];
+      if (key === 'leverage' && v === null) { item[key] = null; continue; }
+      if (typeof v !== 'number' || !Number.isFinite(v) || Math.abs(v) > 1e32 || (key !== 'net' && v < 0)) throw new Error('快照數值不正確');
+      item[key] = v;
+    }
+    return item;
+  }).sort((a,b)=>a.date.localeCompare(b.date));
+  if (raw.savedAt !== null && (typeof raw.savedAt !== 'string' || !Number.isFinite(Date.parse(raw.savedAt)))) throw new Error('儲存時間格式不正確');
+  let draft = null;
+  if (raw.draft !== undefined && raw.draft !== null) {
+    if (typeof raw.draft !== 'object' || Array.isArray(raw.draft)) throw new Error('未完成輸入格式不正確');
+    draft = {};
     for (const field of fields) {
-      const value = saved[field.name];
-      if (typeof value === 'number' && Number.isFinite(value) && value >= Number(field.min) && value <= Number(field.max || 1e15) && (field.step !== '1' || Number.isInteger(value))) initial[field.name] = value;
+      const value = raw.draft[field.name];
+      if (typeof value !== 'string' || value.length > 100) throw new Error('未完成輸入格式不正確');
+      draft[field.name] = value;
     }
   }
-} catch {
-  setText('save-status', '無法讀取儲存資料；目前計算仍可使用');
+  return {schemaVersion:2, data, snapshots, savedAt:raw.savedAt, draft};
 }
-for (const field of fields) field.value = initial[field.name];
-render(initial);
-function update() {
-  const data = {};
-  const errors = [];
-  for (const field of fields) {
-    const value = field.value === '' && !field.validity.badInput ? (field.name === 'multiplier' ? 2 : 0) : field.valueAsNumber;
-    const valid = Number.isFinite(value) && value >= Number(field.min) && value <= Number(field.max || 1e15) && (field.step !== '1' || Number.isInteger(value));
-    field.setAttribute('aria-invalid', String(!valid));
-    if (!valid) errors.push(field.name === 'multiplier' ? 'ETF 倍率請輸入大於或等於 1 的數字。' : field.name === 'annualReturn' ? '年化報酬率請輸入 -99% 到 100% 之間的數字。' : field.name.endsWith('Age') ? '年齡請輸入 0 到 120 的整數。' : '金額請輸入 0 到 1,000,000,000,000,000 之間的有效數字。');
-    data[field.name] = value;
+function readLocal(key) {
+  const raw = localStorage.getItem(key);
+  if (raw) return validateEnvelope(JSON.parse(raw));
+  if (key === LOCAL_KEY) {
+    const legacy = localStorage.getItem(STORAGE_KEY);
+    if (legacy) return {...emptyState(), data:validateData(JSON.parse(legacy), true)};
   }
-  if (data.investmentDebt > data.loan) errors.push('投資用途信貸不能超過信貸餘額。');
-  if (data.targetAssets > 0 && data.targetAge < data.currentAge) errors.push('目標年齡不能小於目前年齡。');
-  const goalWarning = document.getElementById('goal-validation');
-  goalWarning.hidden = errors.length === 0;
-  goalWarning.textContent = [...new Set(errors)].join(' ');
-  const warning = document.getElementById('validation');
-  warning.hidden = errors.length === 0;
-  warning.textContent = [...new Set(errors)].join(' ');
-  if (errors.length) {
-    setText('save-status', '請修正輸入；結果保留上一筆有效資料');
-    return;
-  }
-  render(data);
+  return emptyState();
+}
+function showSaved(ok = !lastSaveFailed) {
+  setText('save-status', ok ? (state.savedAt ? (state.draft ? '已儲存草稿：請修正輸入' : '✓ 資料已儲存於此瀏覽器') : '尚未輸入資料') : '無法儲存，請立即匯出備份');
+  ui('saved-at').textContent = `最後儲存：${state.savedAt ? new Date(state.savedAt).toLocaleString('zh-TW', {hour12:false}) : '—'}`;
+}
+function persist(touch = true) {
+  const next = {...state, savedAt:touch ? new Date().toISOString() : state.savedAt};
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    setText('save-status', '✓ 已自動儲存在此瀏覽器');
+    localStorage.setItem(activeKey, JSON.stringify(next));
+    state.savedAt = next.savedAt; lastSaveFailed = false; ui('storage-warning').hidden = true; showSaved(true); return true;
   } catch {
-      setText('save-status', '無法儲存：重新整理可能遺失資料');
+    lastSaveFailed = true; ui('storage-warning').hidden = false;
+    ui('storage-warning').textContent = '本機儲存失敗：瀏覽器可能禁止儲存或空間不足。目前資料僅在畫面中，關閉後可能遺失；請立即匯出備份。';
+    showSaved(false); return false;
   }
 }
-form.addEventListener('input', update);
-form.addEventListener('submit', event => event.preventDefault());
-goalForm.addEventListener('input', update);
-goalForm.addEventListener('submit', event => event.preventDefault());
-document.getElementById('reset').addEventListener('click', () => {
-  if (!window.confirm('確定要清除全部財務資料嗎？此操作無法復原。')) return;
-  for (const field of fields) field.value = defaults[field.name];
-  update();
+function paint() {
+  for (const field of fields) { field.value = state.draft ? state.draft[field.name] : state.data[field.name]; field.setAttribute('aria-invalid','false'); }
+  for (const id of ['validation','goal-validation']) ui(id).hidden = true;
+  dataValid = !state.draft; render(state.data); renderHistory(); showSaved();
+  if (state.draft) {
+    for (const id of ['validation','goal-validation']) { ui(id).hidden=false;ui(id).textContent='已恢復尚未完成的輸入；結果顯示上一筆有效資料，請修正輸入。'; }
+  }
+}
+function update() {
+  try {
+    const input = {};
+    for (const field of fields) {
+      const value = field.value === '' && !field.validity.badInput ? defaults[field.name] : field.valueAsNumber;
+      field.setAttribute('aria-invalid', String(!Number.isFinite(value) || value < Number(field.min) || value > Number(field.max || 1e15) || (field.step === '1' && !Number.isInteger(value))));
+      input[field.name] = value;
+    }
+    const data = validateData(input);
+    state.data = data; state.draft = null; dataValid = true;
+    for (const id of ['validation','goal-validation']) ui(id).hidden = true;
+    render(data); persist();
+  } catch (e) {
+    dataValid = false;
+    for (const id of ['validation','goal-validation']) { ui(id).hidden = false; ui(id).textContent = e.message; }
+    state.draft = Object.fromEntries(fields.map(field=>[field.name,field.value]));
+    persist();
+  }
+}
+for (const id of ['finance-form','goal-form','settings-form']) {
+  ui(id).addEventListener('input', update);
+  ui(id).addEventListener('submit', e=>e.preventDefault());
+}
+function commit(next) {
+  state = validateEnvelope(next);
+  paint(); persist();
+}
+function clearData() {
+  if (!confirm('要清除本機全部財務資料、目標、警戒線與快照嗎？建議先匯出備份。')) return;
+  if (!confirm('最後確認：清除後無法復原。確定清除本機資料？')) return;
+  state=emptyState();paint();persist();
+  try { localStorage.removeItem(STORAGE_KEY); }
+  catch { ui('storage-warning').hidden=false;ui('storage-warning').textContent='舊版資料清除失敗，請檢查瀏覽器儲存權限。'; }
+  ui('data-message').textContent=lastSaveFailed ? '清除未能寫入瀏覽器；重新開啟仍可能恢復舊資料。' : '本機資料已重設；不影響其他網站的資料。';
+}
+ui('clear-data').addEventListener('click', clearData);
+ui('export-data').addEventListener('click', () => {
+  const payload = {...state};
+  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = `財務備份-${localDate()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  ui('data-message').textContent = '已匯出完整備份，包含有效資料、未完成輸入、目標、警戒線與所有快照。';
 });
+ui('import-data').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    if (file.size > 2*1024*1024) throw new Error('備份檔不能超過 2 MB');
+    const raw = JSON.parse(await file.text());
+    const next = raw.schemaVersion === undefined ? {...emptyState(), data:validateData(raw,true)} : validateEnvelope(raw);
+    if (!confirm('以備份取代本機全部資料、目標、警戒線及快照？此操作會覆蓋目前紀錄。')) { ui('data-message').textContent='已取消匯入，原資料未變更。'; return; }
+    commit(next); ui('data-message').textContent = lastSaveFailed ? '備份已載入畫面，但儲存失敗，請保留原備份檔。' : '匯入完成，已儲存到此裝置瀏覽器。';
+  } catch (e) { ui('data-message').textContent = `匯入失敗：${e.message}；原資料未變更。`; }
+  finally { e.target.value = ''; }
+});
+ui('snapshot-date').value = localDate();
+ui('save-snapshot').addEventListener('click', () => {
+  if (!dataValid) { ui('data-message').textContent = '請先修正輸入後再存快照。'; return; }
+  const date = ui('snapshot-date').value;
+  if (!validDate(date)) { ui('data-message').textContent = '請選擇有效快照日期。'; return; }
+  const existing = state.snapshots.find(s=>s.date.slice(0,7)===date.slice(0,7));
+  if (existing && !confirm('這個月份已有快照，確定要取代嗎？')) return;
+  if (!existing && state.snapshots.length >= 600) { ui('data-message').textContent = '最多保存 600 筆快照，請先匯出並刪除舊紀錄。'; return; }
+  const c = calculate(state.data);
+  state.snapshots = state.snapshots.filter(s=>s!==existing).concat({date,net:c.net,financial:c.financial,investment:c.investment,debt:c.debt,leverage:c.leverage}).sort((a,b)=>a.date.localeCompare(b.date));
+  persist(); renderHistory();
+});
+function renderHistory() {
+  ui('snapshot-rows').replaceChildren(...state.snapshots.map(s=>{
+    const row = document.createElement('tr');
+    for (const text of [s.date,money(s.net),money(s.financial),money(s.investment),money(s.debt),multiple(s.leverage)]) { const td=document.createElement('td');td.textContent=text;row.append(td); }
+    const cell=document.createElement('td');const button=document.createElement('button');button.textContent='刪除';button.type='button';
+    button.addEventListener('click',()=>{if(confirm(`刪除 ${s.date} 快照？`)){state.snapshots=state.snapshots.filter(x=>x!==s);persist();renderHistory();}});
+    cell.append(button);row.append(cell);return row;
+  }));
+  const target=ui('history-chart');target.replaceChildren();
+  if (!state.snapshots.length) { const p=document.createElement('p');p.className='hint';p.textContent='尚無快照。儲存第一筆後即可查看歷史趨勢。';target.append(p);return; }
+  const metric=ui('chart-metric').value, values=state.snapshots.map(s=>s[metric]).filter(v=>v!==null);
+  if(!values.length){target.textContent='這些快照的槓桿無有效數值，請選其他指標。';return;}
+  const low=Math.min(0,...values), high=Math.max(1,...values), range=high-low;
+  const svgNS='http://www.w3.org/2000/svg';const svg=document.createElementNS(svgNS,'svg');svg.setAttribute('viewBox','0 0 800 260');svg.classList.add('history-svg');svg.setAttribute('role','img');svg.setAttribute('aria-label',`${ui('chart-metric').selectedOptions[0].text}歷史趨勢；詳細數字見下方表格`);
+  function node(tag,attrs,text){const n=document.createElementNS(svgNS,tag);for(const[k,v]of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;svg.append(n);return n;}
+  const display=v=>metric==='leverage'?multiple(v):money(v);
+  for(let i=0;i<3;i++){const y=25+i*90;node('line',{x1:130,y1:y,x2:780,y2:y,class:'axis'});node('text',{x:120,y:y+4,'text-anchor':'end'},display(high-range*i/2));}
+  let segment=[];
+  const flush=()=>{if(segment.length)node('polyline',{points:segment.join(' '),class:'trend'});segment=[];};
+  state.snapshots.forEach((s,i)=>{const x=140+(state.snapshots.length===1?310:i/(state.snapshots.length-1)*620);if(s[metric]===null){flush();return;}const y=25+(high-s[metric])/range*180;segment.push(`${x},${y}`);const dot=node('circle',{cx:x,cy:y,r:4});const title=document.createElementNS(svgNS,'title');title.textContent=`${s.date}：${display(s[metric])}`;dot.append(title);});flush();
+  node('text',{x:140,y:245},state.snapshots[0].date);node('text',{x:780,y:245,'text-anchor':'end'},state.snapshots.at(-1).date);target.append(svg);
+}
+ui('chart-metric').addEventListener('change',renderHistory);
+window.addEventListener('storage', e=>{
+  if(e.key!==activeKey || !e.newValue)return;
+  try{const next=validateEnvelope(JSON.parse(e.newValue));if(next.savedAt!==state.savedAt){if(!dataValid){setText('save-status','另一分頁已修改資料；請匯出備份再重新整理');return;}state=next;paint();}}catch{setText('save-status','另一分頁資料格式異常，請先匯出備份');}
+});
+try { state = readLocal(LOCAL_KEY); paint(); if (!localStorage.getItem(LOCAL_KEY) && localStorage.getItem(STORAGE_KEY)) persist(false); }
+catch { state=emptyState();paint();lastSaveFailed=true;showSaved(false);ui('storage-warning').hidden=false;ui('storage-warning').textContent='無法讀取舊資料：儲存權限不足或資料格式損壞。原紀錄尚未改動，請先檢查權限或匯入備份。'; }
+if(location.protocol==='file:')ui('data-message').textContent='目前為本機檔案模式；瀏覽器可能不保證關閉後保存。建議改用固定網址並匯出備份，原檔資料不會自動搬至新網址。';
