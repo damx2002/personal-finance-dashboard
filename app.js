@@ -126,7 +126,7 @@ function highRisk(value, warning, danger) {
   return value === null ? '' : value > danger ? 'danger' : value > warning ? 'caution' : '';
 }
 function statusLabel(status) {
-  return status === 'danger' ? '需留意' : status === 'caution' ? '注意' : '';
+  return status === 'danger' ? '超過警戒' : status === 'caution' ? '接近警戒' : '';
 }
 function setText(id, text, status = '') {
   const element = document.getElementById(id);
