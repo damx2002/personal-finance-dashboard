@@ -142,6 +142,7 @@ function render(d) {
       row.append(cell);
     }); return row;
   }));
+  window.dispatchEvent(new Event('finance-render'));
 }
 // A versioned envelope keeps values, snapshots and save metadata together.
 const LOCAL_KEY = 'personal-finance-dashboard.v2';
@@ -296,12 +297,15 @@ ui('save-snapshot').addEventListener('click', () => {
   persist(); renderHistory();
 });
 function renderHistory() {
+  window.dispatchEvent(new Event('finance-history'));
   ui('snapshot-rows').replaceChildren(...state.snapshots.map(s=>{
     const row = document.createElement('tr');
     for (const text of [s.date,money(s.net),money(s.financial),money(s.investment),money(s.debt),multiple(s.leverage)]) { const td=document.createElement('td');td.textContent=text;row.append(td); }
     const cell=document.createElement('td');const button=document.createElement('button');button.textContent='刪除';button.type='button';
     button.addEventListener('click',()=>{if(confirm(`刪除 ${s.date} 快照？`)){state.snapshots=state.snapshots.filter(x=>x!==s);persist();renderHistory();}});
-    cell.append(button);row.append(cell);return row;
+    const summaryButton=document.createElement('button');summaryButton.type='button';summaryButton.textContent='產出此月摘要圖';summaryButton.className='snapshot-summary';
+    summaryButton.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('finance-summary',{detail:s.date})));
+    cell.append(summaryButton,button);row.append(cell);return row;
   }));
   const target=ui('history-chart');target.replaceChildren();
   if (!state.snapshots.length) { const p=document.createElement('p');p.className='hint';p.textContent='尚無快照。儲存第一筆後即可查看歷史趨勢。';target.append(p);return; }

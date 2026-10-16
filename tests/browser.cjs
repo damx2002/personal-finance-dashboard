@@ -15,7 +15,7 @@ async function main() {
   const server=http.createServer(async(req,res)=>{
     requests.push({method:req.method,url:req.url});
     const name=req.url.split('?')[0].replace(/^\/personal-finance-dashboard\//,'') || 'index.html';
-    if(!['index.html','dashboard.html','style.css','app.js'].includes(name)){res.writeHead(404);res.end();return;}
+    if(!['index.html','dashboard.html','style.css','app.js','summary.js'].includes(name)){res.writeHead(404);res.end();return;}
     try { const content=await fs.readFile(path.join(root,name));res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html');res.end(content); }
     catch {res.writeHead(404);res.end();}
   });
@@ -47,7 +47,7 @@ async function main() {
       assert.equal(await page.locator('#marketLeverage').innerText(),'1.71x');
       assert.ok((await page.locator('#save-status').innerText()).includes('資料已儲存'));
       assert.notEqual(await page.locator('#saved-at').innerText(),'最後儲存：—');
-      await page.locator('.subsection summary').click();
+      await page.locator('details').filter({has:page.locator('#return-scenarios')}).locator('summary').click();
       const scenarioValues=await page.locator('#return-scenarios strong').allTextContents();
       for(const [i,rate]of [5,8,12,7].entries()) {
         const r=(1+rate/100)**(1/12)-1;let v=1600000;for(let m=0;m<240;m++)v=v*(1+r)+10000;

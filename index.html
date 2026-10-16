@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><link rel="icon" href="data:,"><title>個人財務儀表板</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><link rel="icon" href="data:,"><title>個人財務儀表板</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script><script src="summary.js" defer></script></head>
 <body><main>
 <header><div><p class="eyebrow">MY FINANCE · 我的財務全貌</p><h1>個人財務儀表板</h1><p class="subtitle">掌握現在，為未來留一點餘裕。</p></div><div class="save-info"><span id="save-status" role="status">尚未輸入資料</span><small id="saved-at">最後儲存：—</small></div></header><p class="privacy-note">所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。<br>清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。</p><p id="storage-warning" class="warning" role="alert" hidden></p>
 <section class="kpis" aria-label="財務摘要">
@@ -8,6 +8,7 @@
 <article class="kpi"><span>現金緩衝月數</span><strong id="cashRunway">—</strong><small>可支應生活費與債務還款</small></article>
 <article class="kpi"><span>綜合市場槓桿</span><strong id="marketLeverage">—</strong><small>等效曝險 ÷ 投資淨值</small></article>
 </section>
+<p id="month-comparison" class="hint" hidden></p><div class="share-toolbar"><button id="generate-summary" type="button">產出財務摘要圖</button><label class="inline-check"><input id="hide-amounts" type="checkbox">分享版隱藏金額，只顯示比例</label></div><p id="image-status" role="status" class="hint"></p><div id="image-result" hidden><a id="download-summary" download>下載 PNG 圖片</a><details class="subsection"><summary>預覽摘要圖</summary><img id="summary-preview" alt="本機產生的財務摘要圖"></details></div>
 <div class="layout"><details class="panel inputs"><summary>編輯財務資料 <span>點擊展開 / 收合</span></summary><div class="section-heading"><h2>輸入財務資料</h2><span>新台幣 TWD</span></div><p class="hint">輸入後即時計算、自動儲存。空白視為 0。</p><form id="finance-form" novalidate>
 <fieldset><legend>01 / 資產</legend>
 <label>現金<input name="cash" type="number" min="0" step="any" inputmode="decimal"></label>
