@@ -1,6 +1,8 @@
 'use strict';
 // V5 presentation only: consumes existing FinanceCore results, never reads/writes storage.
 (()=>{
+ const summaryToggle=ui('open-summary-tools');
+ summaryToggle.addEventListener('click',()=>{const tools=ui('summary-tools');tools.hidden=!tools.hidden;summaryToggle.setAttribute('aria-expanded',String(!tools.hidden));});
  const panel=ui('kpi-detail-panel'),triggers=[...document.querySelectorAll('[data-kpi]')];
  const labels={netWorth:'淨資產',financialAssets:'金融資產',cashRunway:'現金緩衝',marketLeverage:'綜合市場槓桿'};
  let active=null;

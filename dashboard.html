@@ -80,6 +80,11 @@ summary{cursor:pointer;list-style:none;min-height:44px;line-height:1.7;border-ra
 :root{--muted:#5F7066;--interactive:#426B57}:root[data-theme="dark"]{--muted:#B0BFB5;--interactive:#B4D2BF}
 .text-button,.privacy-bar summary,.brand .eyebrow,.inline-info summary,.reason-accordion>summary,.full-explanation>summary,.kpi-composition>summary,.return-explanation summary,.review-item summary,.stepper .active,.field-level[data-level="基本"]{color:var(--interactive)}
 .metric-panel dd.danger{color:var(--danger-text)}
+/* Quick actions: one PNG UI near the KPIs, installation only when available. */
+.quick-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}.quick-actions>button{font-weight:400;background:transparent}.quick-actions>button:hover{background:var(--soft)}#install-instructions{min-width:0;max-width:100%}#install-instructions>summary{min-height:44px;padding:10px 4px;font-size:12px;color:var(--interactive)}#install-instructions[open]{flex-basis:100%}#install-instructions #pwa-install-help{max-width:65ch;margin:4px 0 8px;font-size:12px}.summary-tools{padding:12px 0 16px;border-bottom:1px solid var(--border);min-width:0}.summary-tools .share-toolbar{margin:0 0 12px;gap:12px}.summary-tools .inline-check{font-size:12px;line-height:1.8;min-width:0}.summary-tools .inline-check input{flex-shrink:0}.summary-tools #image-status:empty{display:none}.summary-tools #download-summary{display:inline-flex;align-items:center;min-height:44px}.summary-tools #summary-preview{max-width:440px;width:100%}
+@media(max-width:680px){.quick-actions{gap:8px;margin-top:12px}.quick-actions>button{font-size:12px;padding:10px 12px}.summary-tools .share-toolbar{align-items:flex-start;gap:8px}.summary-tools .inline-check{font-size:12px;white-space:normal}.summary-tools #image-result{max-width:100%}}
+/* Keep the floating editor from covering the expanded image controls. */
+body:has(#summary-tools:not([hidden])) #mobile-edit{display:none!important}
 </style></head>
 <body><main>
 <header class="app-header"><div class="brand"><p class="eyebrow">MY FINANCE</p><h1>我的財務儀表板</h1><p class="subtitle">掌握現在，為未來留一點餘裕。</p></div><div class="header-controls"><div class="header-actions"><button type="button" id="edit-finances" class="primary-button">更新資料</button><button type="button" id="open-filling-guide" aria-haspopup="dialog" aria-controls="filling-guide">？填寫指南</button><div class="theme-switch" role="group" aria-label="外觀模式"><button type="button" data-theme-choice="light" aria-pressed="true">☀ Light</button><button type="button" data-theme-choice="dark" aria-pressed="false">☾ Dark</button></div></div><small id="theme-status" role="status" hidden></small></div><div class="save-info"><small id="saved-at">最後更新：—</small><span id="save-status" role="status">尚未輸入資料</span></div></header><div class="privacy-bar"><span>財務資料只保存在此瀏覽器</span><details id="privacy-details"><summary>了解資料保存方式</summary><p class="privacy-note">所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。</p></details></div><p id="storage-warning" class="warning" role="alert" hidden></p>
@@ -93,6 +98,8 @@ summary{cursor:pointer;list-style:none;min-height:44px;line-height:1.7;border-ra
 <article class="kpi"><span>現金緩衝</span><strong id="cashRunway">—</strong><small>可支應生活費與債務還款</small><button type="button" class="kpi-detail-trigger text-button" data-kpi="cashRunway" aria-expanded="false" aria-controls="kpi-detail-panel">ⓘ 查看詳情<span class="sr-only">：現金緩衝</span></button></article>
 <article class="kpi"><span>綜合市場槓桿</span><strong id="marketLeverage">—</strong><small>等效曝險 ÷ 投資淨值</small><button type="button" class="kpi-detail-trigger text-button" data-kpi="marketLeverage" aria-expanded="false" aria-controls="kpi-detail-panel">ⓘ 查看詳情<span class="sr-only">：綜合市場槓桿</span></button></article>
 </section>
+<div class="quick-actions" role="group" aria-label="快速操作"><button id="open-summary-tools" type="button" aria-expanded="false" aria-controls="summary-tools">產出財務摘要圖</button><button id="pwa-install" type="button" aria-describedby="pwa-install-help" hidden>＋ 新增到主畫面</button><details id="install-instructions"><summary>如何新增到主畫面？</summary><p id="pwa-install-help" class="hint" role="status" hidden></p></details></div><div id="summary-tools" class="summary-tools" role="region" aria-labelledby="open-summary-tools" hidden><div class="share-toolbar"><label class="inline-check"><input id="hide-amounts" type="checkbox">分享版隱藏金額，只顯示比例</label><button id="generate-summary" type="button">產出財務摘要圖</button></div><p id="image-status" role="status" class="hint"></p><div id="image-result" hidden><a id="download-summary" download>下載 PNG 圖片</a><details class="subsection"><summary>預覽摘要圖</summary><img id="summary-preview" alt="本機產生的財務摘要圖"></details></div>
+</div>
 <section id="kpi-detail-panel" class="panel kpi-detail-panel" hidden aria-labelledby="kpi-detail-title"><div class="section-heading"><h2 id="kpi-detail-title" tabindex="-1"></h2><button id="close-kpi-detail" type="button" class="text-button">收合詳情</button></div><section id="detail-netWorth" data-kpi-detail="netWorth" hidden></section><section id="detail-financialAssets" data-kpi-detail="financialAssets" hidden></section><section id="detail-cashRunway" data-kpi-detail="cashRunway" hidden></section><section id="detail-marketLeverage" data-kpi-detail="marketLeverage" hidden></section></section>
 <p id="month-comparison" class="snapshot-trend" hidden></p>
 <div class="layout"><div class="results">
@@ -115,8 +122,7 @@ summary{cursor:pointer;list-style:none;min-height:44px;line-height:1.7;border-ra
 <p class="hint">每月手動記錄一次；同月份重存會先要求確認。快照記錄當時數值，不隨目前輸入改變。</p>
 <div class="toolbar"><label>快照日期<input id="snapshot-date" type="date"></label><button id="save-snapshot" type="button">儲存本月快照</button><label>趨勢指標<select id="chart-metric"><option value="net">淨資產</option><option value="financial">金融資產</option><option value="investment">投資市值</option><option value="debt">總負債</option><option value="leverage">綜合市場槓桿</option></select></label></div>
 <div id="history-chart"></div><div class="table-scroll"><table><thead><tr><th>日期</th><th>淨資產</th><th>金融資產</th><th>投資市值</th><th>總負債</th><th>綜合槓桿</th><th>操作</th></tr></thead><tbody id="snapshot-rows"></tbody></table></div></details>
-</div><details class="panel utility" id="data-tools"><summary>資料備份與工具</summary><h3>財務摘要圖</h3><div class="share-toolbar"><button id="generate-summary" type="button">產出財務摘要圖</button><label class="inline-check"><input id="hide-amounts" type="checkbox">分享版隱藏金額，只顯示比例</label></div><p id="image-status" role="status" class="hint"></p><div id="image-result" hidden><a id="download-summary" download>下載 PNG 圖片</a><details class="subsection"><summary>預覽摘要圖</summary><img id="summary-preview" alt="本機產生的財務摘要圖"></details></div>
-<h3>安裝與離線</h3><button id="pwa-install" type="button" aria-describedby="pwa-install-help">安裝／新增到主畫面</button><p id="pwa-install-help" class="hint" role="status" hidden></p><p id="pwa-status" class="hint" role="status"></p><h3>資料備份</h3>
+</div><details class="panel utility" id="data-tools"><summary>資料備份與工具</summary><h3>裝置與離線狀態</h3><p id="pwa-status" class="hint" role="status"></p><h3>資料備份</h3>
 <p class="hint">現金低於最低門檻、還款比或槓桿高於最高門檻為紅色；現金在門檻至 1.2 倍、還款比或槓桿在門檻的 80% 至 100% 為黃色。零分母不強行評級，但有債務無收入、投資淨值不大於零等狀況仍提醒。設定僅供個人參考。</p>
 <label class="inline-check"><input id="include-scenarios" type="checkbox" checked>包含已儲存情境</label><div class="toolbar"><button id="export-data" type="button">匯出備份（JSON）</button><label class="file-button">匯入備份（JSON）<input id="import-data" type="file" accept=".json,application/json"></label><button id="clear-data" type="button">清除本機資料</button></div>
 <p class="hint">JSON 含個人財務資料，請妥善保存。匯入會先檢查格式並要求確認。備份包含財務輸入、目標、警戒線、快照與未完成輸入。</p><p id="data-message" role="status"></p></details>
@@ -1167,27 +1173,38 @@ window.hasUnsavedScenario=()=>Lab.dirty;
 (()=>{
  let installEvent=null,registration=null,requestedUpdate=false;
  const status=document.getElementById('pwa-status');
- window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installEvent=event;});
- const installHelp=document.getElementById('pwa-install-help');
+ const installButton=document.getElementById('pwa-install'),installHelp=document.getElementById('pwa-install-help'),instructions=document.getElementById('install-instructions');
+ const displayMode=window.matchMedia('(display-mode: standalone)');let installed=false,offlineReady=false,statusMessage='';
+ const standalone=()=>installed||navigator.standalone===true||displayMode.matches;
+ const appleMobile=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ const manualHelp=appleMobile?'iPhone／iPad：請用 Safari 開啟此網站 → 點「分享」（方框向上箭頭）→「加入主畫面」→「新增」。若有「作為網頁 App 開啟」，請保持開啟。iPhone 需要從分享選單手動新增，網站不會直接跳出安裝視窗。':'Android Chrome：右上角 ⋮ →「新增到主畫面」或「安裝應用程式」。iPhone／iPad：Safari →「分享」→「加入主畫面」。電腦可查看網址列的安裝圖示或瀏覽器選單。請使用 HTTPS 網址，並先讓離線資源準備完成。';
+ const setStatus=text=>{statusMessage=text;status.textContent=(standalone()?(offlineReady?'已安裝，可離線使用。':'已從主畫面開啟。'):'')+text;};
  const showInstallHelp=text=>{installHelp.textContent=text;installHelp.hidden=false;};
- document.getElementById('pwa-install').addEventListener('click',async()=>{
-  const isAppleMobile=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-  if(navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches){showInstallHelp('目前已從主畫面 App 開啟，無需再次新增。');return;}
-  if(isAppleMobile){showInstallHelp('iPhone／iPad：請用 Safari 開啟此網站 → 點「分享」（方框向上箭頭）→「加入主畫面」→「新增」。若有「作為網頁 App 開啟」，請保持開啟。iPhone 需要從分享選單手動新增，這個按鈕不會直接跳出安裝視窗。');return;}
-  if(installEvent){const pending=installEvent;installEvent=null;await pending.prompt();const result=await pending.userChoice;showInstallHelp(result.outcome==='accepted'?'已接受安裝；安裝狀態以瀏覽器顯示為準。':'已取消安裝，可稍後再試。');}
-  else showInstallHelp('Android Chrome：右上角 ⋮ →「新增到主畫面」或「安裝應用程式」。iPhone／iPad：Safari →「分享」→「加入主畫面」。電腦可查看網址列的安裝圖示或瀏覽器選單。請使用 HTTPS 網址，並先讓離線資源準備完成。');
+ const syncInstallUI=()=>{installButton.hidden=standalone()||!installEvent;instructions.hidden=standalone()||!!installEvent;if(!installHelp.textContent)showInstallHelp(manualHelp);setStatus(statusMessage);};
+ window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installEvent=event;syncInstallUI();});
+ window.addEventListener('appinstalled',()=>{installed=true;installEvent=null;syncInstallUI();});
+ displayMode.addEventListener?.('change',syncInstallUI);
+ installButton.addEventListener('click',async()=>{
+  if(standalone()||!installEvent){syncInstallUI();return;}
+  const pending=installEvent;installEvent=null;syncInstallUI();
+  try{await pending.prompt();const result=await pending.userChoice;showInstallHelp(result.outcome==='accepted'?'已接受安裝；安裝狀態以瀏覽器顯示為準。':'已取消安裝，可稍後再試。'+manualHelp);}
+  catch{showInstallHelp(manualHelp);}
+  if(!standalone())instructions.open=true;
  });
- if(!('serviceWorker'in navigator)||!['https:','http:'].includes(location.protocol)||!window.isSecureContext){status.textContent='PWA 安裝與離線功能需要固定 HTTPS 網址；目前本機財務功能仍可使用。';return;}
+ syncInstallUI();
+ if(!('serviceWorker'in navigator)||!['https:','http:'].includes(location.protocol)||!window.isSecureContext){setStatus('PWA 安裝與離線功能需要固定 HTTPS 網址；目前本機財務功能仍可使用。');return;}
  const showUpdate=()=>{if(registration?.waiting&&navigator.serviceWorker.controller)document.getElementById('pwa-update').hidden=false;};
  document.getElementById('pwa-reload').addEventListener('click',()=>{if(!registration?.waiting)return;if(window.hasUnsavedScenario?.()&&!confirm('尚有未儲存的情境變動。更新會重新載入頁面，確定繼續？'))return;requestedUpdate=true;registration.waiting.postMessage({type:'SKIP_WAITING'});});
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(requestedUpdate)location.reload();});
- navigator.serviceWorker.register(new URL('service-worker.js',location.href),{updateViaCache:'none'}).then(async reg=>{registration=reg;showUpdate();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed'){if(navigator.serviceWorker.controller)showUpdate();else status.textContent='離線資源已準備完成；財務資料仍只由瀏覽器 localStorage 管理。';}});});await navigator.serviceWorker.ready;if(!reg.waiting)status.textContent='離線資源已準備完成；財務資料仍只由瀏覽器 localStorage 管理。';}).catch(()=>{status.textContent='離線資源暫時未能準備完成；線上與本機儲存仍可使用，可稍後重新開啟。';});
+ navigator.serviceWorker.register(new URL('service-worker.js',location.href),{updateViaCache:'none'}).then(async reg=>{registration=reg;showUpdate();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed'){if(navigator.serviceWorker.controller)showUpdate();else {offlineReady=true;setStatus('離線資源已準備完成；財務資料仍只由瀏覽器 localStorage 管理。');};}});});await navigator.serviceWorker.ready;offlineReady=true;if(!reg.waiting)setStatus('離線資源已準備完成；財務資料仍只由瀏覽器 localStorage 管理。');}).catch(()=>{setStatus('離線資源暫時未能準備完成；線上與本機儲存仍可使用，可稍後重新開啟。');});
  const check=()=>{if(registration)registration.update().catch(()=>{});};
  window.addEventListener('online',check);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check();});
 })();
 </script><script>'use strict';
 // V5 presentation only: consumes existing FinanceCore results, never reads/writes storage.
 (()=>{
+ const summaryToggle=ui('open-summary-tools');
+ summaryToggle.addEventListener('click',()=>{const tools=ui('summary-tools');tools.hidden=!tools.hidden;summaryToggle.setAttribute('aria-expanded',String(!tools.hidden));});
  const panel=ui('kpi-detail-panel'),triggers=[...document.querySelectorAll('[data-kpi]')];
  const labels={netWorth:'淨資產',financialAssets:'金融資產',cashRunway:'現金緩衝',marketLeverage:'綜合市場槓桿'};
  let active=null;

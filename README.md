@@ -52,6 +52,7 @@ node tests/summary.cjs
 node tests/summary-copy.cjs
 node tests/appearance.cjs
 node tests/dashboard-ui.cjs
+node tests/quick-actions.cjs
 node tests/scenario-core.cjs
 node tests/scenario-browser.cjs
 node tests/pwa.cjs
@@ -80,8 +81,10 @@ GitHub **Settings → Pages → Deploy from a branch → main → /(root) → Sa
 
 PWA 首次須連線並等離線資源準備完成，再用 Android Chrome 安裝／新增到主畫面。快取只有靜態程式，財務資料仍在 localStorage。新版本等待使用者按「重新載入更新」，不會在輸入中自動重載。每次修改靜態檔都必須執行 `python scripts/build-single.py`，同步單檔版與 service worker 內容版本。
 
-iPhone／iPad 加入主畫面：用 Safari 開啟網站，點「分享」→「加入主畫面」→「新增」。網站的「安裝／新增到主畫面」會在按鈕下方顯示步驟；iOS 不會由網站按鈕直接跳出安裝視窗。已從主畫面開啟時則提示無需重複新增。
+iPhone／iPad 加入主畫面：用 Safari 開啟網站，點「分享」→「加入主畫面」→「新增」。首頁快速操作中的「如何新增到主畫面？」可展開手動步驟；iOS 不會由網站按鈕直接跳出安裝視窗。可直接安裝的瀏覽器才顯示「＋ 新增到主畫面」，已從主畫面開啟時不顯示安裝入口。
 
 財務摘要 PNG：維持 1080 × 1350，六張核心卡片加次要資訊、目標與市場壓力摘要。完整版呈現金額與相對衝擊；隱藏金額版只呈現比例、月份、倍數與目標時間。歷史快照缺少的欄位仍標示「未記錄」，不套用目前財務設定。所有圖片均在瀏覽器 Canvas 本機產生。
 
 摘要圖精簡：Header 保留標題與日期，分享版另標示金額已隱藏；目標時間集中於目標區。分享版前兩張核心卡為「負債 / 資產」「固定投資前餘裕」，平均月收入不大於 0 時餘裕率顯示「—」。完整版壓力卡金額加註「淨資產」，分享版維持純百分比。
+
+首頁 KPI 後方提供「產出財務摘要圖」快速入口，點擊後展開唯一一套分享設定、產圖、下載與預覽。頁尾「資料備份與工具」集中於 JSON 保存／還原及裝置離線狀態。
