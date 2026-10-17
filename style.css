@@ -84,3 +84,6 @@ summary{cursor:pointer;list-style:none;min-height:44px;line-height:1.7;border-ra
 @media(max-width:680px){.quick-actions{gap:8px;margin-top:12px}.quick-actions>button{font-size:12px;padding:10px 12px}.summary-tools .share-toolbar{align-items:flex-start;gap:8px}.summary-tools .inline-check{font-size:12px;white-space:normal}.summary-tools #image-result{max-width:100%}}
 /* Keep the floating editor from covering the expanded image controls. */
 body:has(#summary-tools:not([hidden])) #mobile-edit{display:none!important}
+
+/* Footer signature stays secondary to the existing disclaimer. */
+.app-footer .footer-disclaimer{margin:0;font-size:12px}.app-footer .footer-brand{margin:6px 0 0;font-size:10px;line-height:1.7;color:var(--muted);opacity:.85}
