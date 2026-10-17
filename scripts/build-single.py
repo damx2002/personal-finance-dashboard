@@ -3,9 +3,9 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 import re
 html = (root / 'index.html').read_text()
-html = re.sub(r'(style\.css|app\.js|summary\.js|v3-core\.js|stress-core\.js|health-analysis\.js|input-guidance\.js|scenario-core\.js|scenario-ui\.js|pwa\.js)\?[^\"]*', r'\1', html)
+html = re.sub(r'(style\.css|app\.js|summary\.js|v3-core\.js|stress-core\.js|health-analysis\.js|input-guidance\.js|dashboard-ui\.js|scenario-core\.js|scenario-ui\.js|pwa\.js)\?[^\"]*', r'\1', html)
 html = html.replace('<link rel="stylesheet" href="style.css">', '<style>' + (root / 'style.css').read_text() + '</style>')
-scripts = ['v3-core.js', 'stress-core.js', 'scenario-core.js', 'health-analysis.js', 'app.js', 'input-guidance.js', 'summary.js', 'scenario-ui.js', 'pwa.js']
+scripts = ['v3-core.js', 'stress-core.js', 'scenario-core.js', 'health-analysis.js', 'app.js', 'input-guidance.js', 'summary.js', 'scenario-ui.js', 'pwa.js', 'dashboard-ui.js']
 for script in scripts:
     html = html.replace(f'<script src="{script}" defer></script>', '')
 html = html.replace('</body>', ''.join('<script>' + (root / script).read_text() + '</script>' for script in scripts) + '</body>')
@@ -17,5 +17,5 @@ import hashlib
 assets = ['index.html', 'dashboard.html', 'style.css', *scripts, 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png']
 digest = hashlib.sha256(b''.join((root / name).read_bytes() for name in assets)).hexdigest()[:16]
 worker = root / 'service-worker.js'
-worker.write_text(re.sub(r"const RELEASE='[^']+';", f"const RELEASE='v41-{digest}';", worker.read_text()))
+worker.write_text(re.sub(r"const RELEASE='[^']+';", f"const RELEASE='v5-{digest}';", worker.read_text()))
 print('Static cache release:', digest)

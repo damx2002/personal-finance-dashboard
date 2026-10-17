@@ -1,10 +1,12 @@
-# Personal Finance Dashboard V4.1.2
+# Personal Finance Dashboard V5
 
-繁體中文、免費、免登入的個人財務儀表板。保留 Light / Dark、localStorage、財務摘要 PNG、快照趨勢、壓力測試與 JSON 備份；新增財務決策實驗室、相同月現金流的借款投資比較、獨立情境保存與 PWA 離線能力。
+繁體中文、免費、免登入的家庭財務儀表板。保留所有財務計算、財務決策實驗室、Light / Dark、localStorage、PNG、快照、壓力測試、JSON 備份與 PWA 離線能力。V5 整理首頁閱讀動線、共用 KPI 詳情、手機排版與可及性，不新增財務功能或資料欄位。
 
 **所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。**
 
 清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。沒有帳號、資料庫、第三方追蹤、分析或外部 API。程式使用 CSP `connect-src 'none'` 與 `form-action 'none'`，僅載入本地靜態資源。
+
+[V5 視覺層級、共用 KPI 詳情與驗收說明](V5.md)
 
 [V4.1.2 輸入指引、個人警戒換算與決策比較](V4.1.2.md)
 
@@ -40,7 +42,7 @@ V3 會自動讀取既有 V2 / V1，驗證後寫入新的 `personal-finance-dashb
 
 V4.1 新增 `stress-core.js` 與 `health-analysis.js`，供 Dashboard、情境實驗室和摘要圖共用。正式財務 schema 維持 V3，壓力偏好使用獨立 key，無需 migration。
 
-主要檔案：`index.html`、`style.css`、`app.js`、`v3-core.js`、`summary.js`。改動後重新產生單檔版：
+主要檔案：`index.html`、`style.css`、`app.js`、`v3-core.js`、`summary.js`。V5 的顯示互動集中在 `dashboard-ui.js`，不寫入正式資料。改動後重新產生單檔版：
 
 ```sh
 python scripts/build-single.py
@@ -49,6 +51,7 @@ node tests/browser.cjs
 node tests/summary.cjs
 node tests/summary-copy.cjs
 node tests/appearance.cjs
+node tests/dashboard-ui.cjs
 node tests/scenario-core.cjs
 node tests/scenario-browser.cjs
 node tests/pwa.cjs

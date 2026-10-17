@@ -10,6 +10,7 @@ for(const mode of ['iphone','ipad','standalone','android','desktop']){
  const p=await c.newPage(),errors=[],requests=[];p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>requests.push(r.url()));
  for(const file of ['index.html','dashboard.html']){
   await p.goto(h.base+file);await p.evaluate(()=>{state.data.cashDaily=1000;state.savedAt=new Date().toISOString();paint();});
+  await p.locator('#data-tools > summary').click();
   const before=await p.evaluate(()=>JSON.stringify(Object.fromEntries(Object.entries(localStorage))));
   assert.equal(await p.locator('#pwa-install-help').isVisible(),false);
   await p.locator('#pwa-install').click();

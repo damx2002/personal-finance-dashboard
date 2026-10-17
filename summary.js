@@ -10,6 +10,7 @@ try{setTheme(localStorage.getItem(THEME_KEY)||'light');}catch{setTheme('light');
 document.querySelectorAll('[data-theme-choice]').forEach(button=>button.addEventListener('click',()=>setTheme(button.dataset.themeChoice,true)));
 window.addEventListener('storage',event=>{if(event.key===THEME_KEY)setTheme(event.newValue||'light');});
 function addExplanation(host, text, brief, status='') {
+  if(host?.classList.contains('kpi'))host=ui('detail-'+host.querySelector('strong[id]').id);
   if (!host) return;
   const old=host.querySelector('.metric-explanation');
   const sameStatus=old?.dataset.status===status;
@@ -50,25 +51,20 @@ function explainMetrics() {
 function renderCompositions(d,c){
  const bufferCash=FinanceCore.cashKeys.map((key,i)=>[`${['日常可動用現金','緊急預備金','投資預備金','指定用途預留資金'][i]}（${d.bufferIncludes[key]?'計入':'不計入'}）`,d[key],key]);
  const spending=d.living+d.mortgagePayment+d.loanPayment;
- const sets=[['cashRunway','runway-composition',[...bufferCash,['生活緩衝現金小計',d.cashBuffer,'cashBuffer'],['每月生活支出',d.living,'living'],['每月房貸還款',d.mortgagePayment,'mortgagePayment'],['每月信貸 / 其他還款',d.loanPayment,'loanPayment'],['每月生活與債務支出小計',spending,'spending']],spending>0?`現金緩衝月數 = 生活緩衝現金 ÷ 每月生活與債務支出\n${decimal.format(c.runway)} 個月 = ${money(d.cashBuffer)} ÷ (${money(d.living)} + ${money(d.mortgagePayment+d.loanPayment)})\n現金緩衝假設收入中斷時會暫停固定投資，因此分母只包含生活支出與債務還款。依進階設定勾選現金分類。`:'目前每月生活與債務支出為 NT$ 0，無法計算緩衝月數。現金緩衝假設收入中斷時會暫停固定投資，因此分母只包含生活支出與債務還款。依進階設定勾選現金分類。'],['financialAssets','financial-composition',[
+ const sets=[['marketLeverage','leverage-composition',[['一般股票 / ETF 曝險',d.regular,'generalExposure'],['槓桿 ETF 等效曝險',c.exposure-d.regular,'leveragedExposure'],['等效市場曝險',c.exposure,'exposure'],['股票 / ETF 投資資產',c.investment,'investment'],['投資用途負債',d.investmentDebt,'investmentDebt'],['投資淨值',c.equity,'equity']],`綜合市場槓桿 = 等效市場曝險 ÷ 投資淨值\n${multiple(c.leverage)} = ${money(c.exposure)} ÷ ${money(c.equity)}\n目前 ${multiple(c.leverage)}；自訂提醒線 ${multiple(d.maxLeverage)}。投資淨值不大於零時不計算有效倍數。`],['cashRunway','runway-composition',[...bufferCash,['生活緩衝現金小計',d.cashBuffer,'cashBuffer'],['每月生活支出',d.living,'living'],['每月房貸還款',d.mortgagePayment,'mortgagePayment'],['每月信貸 / 其他還款',d.loanPayment,'loanPayment'],['每月生活與債務支出小計',spending,'spending']],spending>0?`現金緩衝月數 = 生活緩衝現金 ÷ 每月生活與債務支出\n${decimal.format(c.runway)} 個月 = ${money(d.cashBuffer)} ÷ (${money(d.living)} + ${money(d.mortgagePayment+d.loanPayment)})\n現金緩衝假設收入中斷時會暫停固定投資，因此分母只包含生活支出與債務還款。依進階設定勾選現金分類。`:'目前每月生活與債務支出為 NT$ 0，無法計算緩衝月數。現金緩衝假設收入中斷時會暫停固定投資，因此分母只包含生活支出與債務還款。依進階設定勾選現金分類。'],['financialAssets','financial-composition',[
  ['日常可動用現金',d.cashDaily,'cashDaily'],['緊急預備金',d.cashEmergency,'cashEmergency'],['投資預備金',d.cashInvestmentReserve,'cashInvestmentReserve'],['指定用途預留資金',d.cashEarmarked,'cashEarmarked'],['現金小計',d.cash,'cash'],['一般股票 / ETF',d.regular,'regular'],['槓桿 ETF',d.leveraged,'leveraged'],['股票 / ETF 投資資產小計',c.investment,'investment'],['金融資產',c.financial,'financial']
  ],`金融資產 = 現金小計 + 股票 / ETF 投資資產小計\n${money(c.financial)} = ${money(d.cash)} + ${money(c.investment)}`],['netWorth','net-composition',[
  ['現金',d.cash,'cash'],['股票 / ETF 投資資產',c.investment,'investment'],['房屋',d.home,'home'],['其他資產',d.other,'other'],['總資產',c.assets,'assets'],['減：房貸',d.mortgage,'mortgage'],['減：信貸 / 其他負債',d.loan,'loan'],['總負債',c.debt,'debt'],['淨資產',c.net,'net']
  ],`淨資產 = 總資產 − 總負債\n${money(c.net)} = ${money(c.assets)} − ${money(c.debt)}`]];
- for(const[id,detailId,rows,formula]of sets){const host=ui(id).closest('.kpi');let details=ui(detailId);if(!details){details=document.createElement('details');details.id=detailId;details.className='kpi-composition';const summary=document.createElement('summary');summary.textContent='ⓘ 查看組成與算法';details.append(summary,document.createElement('dl'),document.createElement('p'));host.insertBefore(details,host.querySelector('.metric-explanation'));}
+ for(const[id,detailId,rows,formula]of sets){const host=ui('detail-'+id);let details=ui(detailId);if(!details){details=document.createElement('details');details.id=detailId;details.className='kpi-composition';const summary=document.createElement('summary');summary.textContent='組成與算法';details.append(summary,document.createElement('dl'),document.createElement('p'));host.insertBefore(details,host.querySelector('.metric-explanation'));}
  const dl=details.querySelector('dl');dl.replaceChildren(...rows.map(([label,value,part])=>{const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');row.dataset.part=part;row.dataset.value=value;dt.textContent=label;dd.textContent=money(value);row.append(dt,dd);return row;}));details.querySelector('p').textContent=formula;}
 }
-function previousMonth(month) {
-  const [year,m]=month.split('-').map(Number);return `${m===1?year-1:year}-${String(m===1?12:m-1).padStart(2,'0')}`;
-}
 function renderMonthComparison() {
-  const month=localDate().slice(0,7), previous=state.snapshots.find(s=>s.date.slice(0,7)===previousMonth(month));
-  const current=state.snapshots.find(s=>s.date.slice(0,7)===month);
-  const target=ui('month-comparison');target.hidden=!previous;
-  if(!previous)return;
-  const net=current?current.net:calculate(state.data).net,diff=net-previous.net;
-  const rate=previous.net>0?`${diff>=0?'+':''}${percent(diff/previous.net)}`:'上月淨資產不大於零，不計百分比';
-  target.textContent=`本月相較上月：淨資產 ${diff>=0?'+':''}${money(diff)}（${rate}） · ${current?'比較本月與上月快照':'以目前數值與上月快照比較'}`;
+  const target=ui('month-comparison'),snapshots=[...state.snapshots].sort((a,b)=>a.date.localeCompare(b.date));
+  target.hidden=snapshots.length<2;if(target.hidden){target.textContent='';return;}
+  const previous=snapshots.at(-2),latest=snapshots.at(-1);
+  const change=key=>previous[key]===0?'—（基期為零）':`${latest[key]>=previous[key]?'+':'−'}${percent(Math.abs((latest[key]-previous[key])/Math.abs(previous[key])))}`;
+  target.textContent=`較 ${previous.date.slice(0,7).replace('-','/')} 快照 · 淨資產 ${change('net')} · 金融資產 ${change('financial')} · 總負債 ${change('debt')}（${latest.date.slice(0,7).replace('-','/')} 已記錄值）`;
 }
 let summaryURL=null;
 let summaryBusy=false;

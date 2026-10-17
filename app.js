@@ -201,8 +201,8 @@ function readLocal(){
  return {value:emptyState(),needsMigration:false};
 }
 function showSaved(ok=!lastSaveFailed){
- const message=demoActive?'目前為範例資料，不儲存':ok?(state.savedAt?(state.draft?'已儲存草稿：請修正輸入':'✓ 資料已儲存於此瀏覽器'):isFirstRun()?'尚未輸入資料':'已載入既有資料（尚無儲存時間）'):'無法儲存，請立即匯出備份';setText('save-status',message);ui('wizard-save-status').textContent=message;
- ui('saved-at').textContent=`最後儲存：${!demoActive&&state.savedAt?new Date(state.savedAt).toLocaleString('zh-TW',{hour12:false}):'—'}`;
+ const message=demoActive?'目前為範例資料，不儲存':ok?(state.savedAt?(state.draft?'已儲存草稿：請修正輸入':'✓ 已儲存'):isFirstRun()?'尚未輸入資料':'已載入既有資料（尚無儲存時間）'):'無法儲存，請立即匯出備份';setText('save-status',message);ui('wizard-save-status').textContent=message;
+ const saved=!demoActive&&state.savedAt?new Date(state.savedAt):null;const pad=n=>String(n).padStart(2,'0');ui('saved-at').textContent=saved?`最後更新：${saved.getFullYear()}/${pad(saved.getMonth()+1)}/${pad(saved.getDate())} ${pad(saved.getHours())}:${pad(saved.getMinutes())}`:'最後更新：—';
 }
 function persist(touch=true){
  if(demoActive){showSaved();return true;}
@@ -323,7 +323,7 @@ function renderV3(){
  const rr=FinanceCore.requiredReturn(d,goalSettings.basis);ui('required-return').textContent=requiredReturnText(rr);ui('required-return-note').textContent=rr.kind==='zero'?'即使不計投資報酬，依目前投入亦可達成目標。':rr.kind==='rate'?rr.label+'。僅為月末投入、月複利的數學情境比較，不保證未來報酬。':rr.kind==='noTime'?'目標年齡須晚於目前年齡，才計算未來報酬。':rr.kind==='aboveRange'?'在 0%～100% 年化估算範圍內無解，可檢視投入或目標期限。':rr.kind==='noCapital'?'只有報酬率無法讓零本金、零投入達標。':'設定目標金額與年齡後即可估算。';
  const labels=['一般投資','槓桿投資','投資預備金'];ui('allocation-current').replaceChildren();const bar=document.createElement('div');bar.className='allocation-bar';
  alloc.ratios.forEach((ratio,i)=>{const part=document.createElement('span');part.className=`asset-${i}`;part.style.width=`${(ratio||0)*100}%`;part.title=`${labels[i]} ${percent(ratio)}`;bar.append(part);});ui('allocation-current').append(bar);
- const legend=document.createElement('p');legend.className='allocation-legend';legend.textContent=labels.map((label,i)=>`${label} ${percent(alloc.ratios[i])}`).join(' · ');ui('allocation-current').append(legend);
+ const legend=document.createElement('p');legend.className='allocation-legend';legend.textContent='現在：'+labels.map((label,i)=>`${label} ${percent(alloc.ratios[i])}`).join(' · ');ui('allocation-current').append(legend);
  ui('allocation-target').textContent=alloc.valid?'目標：'+labels.map((label,i)=>`${label} ${decimal.format(alloc.weights[i])}%`).join(' · '):alloc.kind==='unset'?'尚未設定目標配置；可於進階設定依自己的計畫填寫。':'目標配置合計需為 100%。';
  ui('allocation-validation').hidden=!(alloc.kind==='invalid'||(alloc.kind==='unset'&&alloc.weights.some(x=>x!==null)));
  ui('wizard-cash-total').textContent=`總現金 ${money(derived.cash)} · 生活緩衝使用 ${money(derived.cashBuffer)}`;ui('wizard-monthly-note').textContent=`每月固定投入 ${money(d.monthlyInvestment)}（於第一步設定）`;
@@ -333,6 +333,7 @@ function renderV3(){
  renderRows('rebalance-additions',alloc.kind==='valid'?labels.map((label,i)=>[`${label}需新增`,money(alloc.additions[i])]):[]);
  renderRows('monthly-allocation',alloc.monthly?labels.map((label,i)=>[label,`NT$ ${decimal.format(alloc.monthly[i])}`]):[]);
  renderAnalysisStatus();
+ window.dispatchEvent(new Event('finance-layout'));
 }
 function renderAnalysisStatus(){
  const result=HealthAnalysis.analysisStatus(state.data,{draft:state.draft,readBlocked,basis:goalSettings.basis}),host=ui('completeness');host.replaceChildren();
@@ -358,9 +359,9 @@ function renderStress(d,c){
  ui('stress-settings-message').textContent=stressSettingsError;
  ui('break-even').textContent=solved.kind==='error'?solved.error:solved.kind==='empty'?'尚無投資資料。':solved.kind==='none'?'在目前模型範圍內未出現投資淨值歸零。':solved.drawdown===0?'在目前模型假設下，投資淨值已為零或負數（約 0% 跌幅）。':daily?`依目前每日重置情境假設，投資淨值歸零約落在大盤 −${decimal.format(solved.drawdown*100)}%。`:`線性曝險模型下，投資淨值歸零約需大盤下跌 ${decimal.format(solved.drawdown*100)}%。`;
  ui('break-even-note').hidden=!daily;
- ui('scenarios').replaceChildren(...c.scenarios.map(r=>{const row=document.createElement('tr');if(!r.ok){const cell=document.createElement('td');cell.colSpan=5;cell.textContent=`大盤 −${r.drop}%：${r.error}`;row.append(cell);return row;}const labels=['大盤跌幅','槓桿 ETF 模擬','投資市值','投資淨值','整體淨資產'];[`-${r.drop}%`,percent(r.leveragedReturn),money(r.value),money(r.equity),money(r.net)].forEach((text,i)=>{const cell=document.createElement('td');cell.textContent=text;cell.dataset.label=labels[i];if(i===3&&r.equity<0||i===4&&r.net<0)cell.className='danger';row.append(cell);});return row;}));
+ ui('scenarios').replaceChildren(...c.scenarios.map(r=>{const row=document.createElement('tr');row.dataset.drop=r.drop;if(!r.ok){const cell=document.createElement('td');cell.colSpan=5;cell.textContent=`大盤 −${r.drop}%：${r.error}`;row.append(cell);return row;}const labels=['大盤跌幅','槓桿 ETF 模擬','投資市值','投資淨值','整體淨資產'];[`-${r.drop}%`,percent(r.leveragedReturn),money(r.value),money(r.equity),money(r.net)].forEach((text,i)=>{const cell=document.createElement('td');cell.textContent=text;cell.dataset.label=labels[i];if(i===3&&r.equity<0||i===4&&r.net<0)cell.className='danger';row.append(cell);});return row;}));
 }
-function renderReview(d){const result=HealthAnalysis.analyze(d,stressSettings,new Date().getFullYear(),goalSettings.basis);for(const key of ['positive','warnings','review']){const host=ui('review-'+key);host.replaceChildren(...result[key].map(item=>{const li=document.createElement('li');li.textContent=item.text;return li;}));if(!result[key].length){const li=document.createElement('li');li.className='hint';li.textContent=key==='warnings'?'目前未觸發上述個人警戒條件。':key==='positive'?'可隨資料與目標設定持續檢視。':'目前沒有額外待補項目。';host.append(li);}}}
+function renderReview(d){const result=HealthAnalysis.analyze(d,stressSettings,new Date().getFullYear(),goalSettings.basis);for(const key of ['positive','warnings','review']){const host=ui('review-'+key);host.replaceChildren(...result[key].map(item=>{const li=document.createElement('li');li.textContent=item.text;li.dataset.reviewId=item.id;return li;}));if(!result[key].length){const li=document.createElement('li');li.className='hint';li.textContent=key==='warnings'?'目前未觸發上述個人警戒條件。':key==='positive'?'可隨資料與目標設定持續檢視。':'目前沒有額外待補項目。';host.append(li);}}}
 function syncStressControls(){ui('stress-model').value=stressSettings.model;ui('stress-path').value=stressSettings.path;ui('stress-days').value=stressSettings.days;ui('stress-volatility').value=[.5,1,2].includes(stressSettings.volatility)?String(stressSettings.volatility):'custom';ui('stress-custom-volatility').value=stressSettings.volatility;}
 syncStressControls();
 ui('stress-controls').addEventListener('change',()=>{const candidate={model:ui('stress-model').value,path:ui('stress-path').value,days:Number(ui('stress-days').value),volatility:ui('stress-volatility').value==='custom'?(ui('stress-custom-volatility').value.trim()===''?NaN:Number(ui('stress-custom-volatility').value)):Number(ui('stress-volatility').value)};
