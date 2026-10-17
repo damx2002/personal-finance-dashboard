@@ -2,6 +2,7 @@
 (function(root){
 'use strict';
 const C=typeof module!=='undefined'&&module.exports?require('./v3-core.js'):root.FinanceCore;
+const T=typeof module!=='undefined'&&module.exports?require('./stress-core.js'):root.StressCore;
 const KEY='personal-finance-dashboard.scenarios.v4';
 const cashKeys=C.cashKeys, types=['borrow','repay','expense','income','annualIncome','living','monthlyInvestment','trade'];
 const copy=C.clone;
@@ -49,9 +50,9 @@ function apply(baseline,actions){
  }catch(e){throw Error(`變動 ${i+1}：${e.message}`);}}
  return {data:C.validateData(d),notes:[...new Set(notes)]};
 }
-function metrics(data){const d=C.derived(data),investment=d.regular+d.leveraged,assets=d.cash+d.home+d.other+investment,debt=d.mortgage+d.loan,payments=d.mortgagePayment+d.loanPayment,spending=d.living+payments,exposure=d.regular+d.leveraged*d.multiplier,equity=investment-d.investmentDebt;
- return {assets,debt,net:assets-debt,financial:d.cash+investment,runway:spending>0?d.cashBuffer/spending:null,paymentRatio:d.income>0?payments/(d.income/12):null,balance:d.income/12-spending-d.monthlyInvestment,payments,investmentDebt:d.investmentDebt,investment,embedded:investment>0?exposure/investment:null,leverage:equity>0?exposure/equity:null,required:C.requiredReturn(data),stress:[10,20,30,40,50].map(drop=>{const value=d.regular*(1-drop/100)+d.leveraged*Math.max(0,1-d.multiplier*drop/100);return {drop,equity:value-d.investmentDebt,net:assets-debt-investment+value};})};}
-function compare(baseline,actions){const baselineCopy=copy(baseline),result=apply(baselineCopy,actions);return {baseline:metrics(baselineCopy),scenario:metrics(result.data),notes:result.notes};}
+function metrics(data,config=T.defaults(),paths){const d=C.derived(data),investment=d.regular+d.leveraged,assets=d.cash+d.home+d.other+investment,debt=d.mortgage+d.loan,payments=d.mortgagePayment+d.loanPayment,spending=d.living+payments,exposure=d.regular+d.leveraged*d.multiplier,equity=investment-d.investmentDebt;
+ return {assets,debt,net:assets-debt,financial:d.cash+investment,runway:spending>0?d.cashBuffer/spending:null,paymentRatio:d.income>0?payments/(d.income/12):null,balance:d.income/12-spending-d.monthlyInvestment,payments,investmentDebt:d.investmentDebt,investment,embedded:investment>0?exposure/investment:null,leverage:equity>0?exposure/equity:null,required:C.requiredReturn(data),stress:[10,20,30,40,50].map((drop,i)=>T.stressScenario({data,drawdown:drop/100,...config},paths?.[i]))};}
+function compare(baseline,actions,config=T.defaults()){const baselineCopy=copy(baseline),result=apply(baselineCopy,actions),s=T.settings(config),paths=s.model==='linear'?null:[10,20,30,40,50].map(drop=>T.buildPath(drop/100,s));return {baseline:metrics(baselineCopy,s,paths),scenario:metrics(result.data,s,paths),notes:result.notes};}
 function validateStore(raw){if(!Array.isArray(raw)||raw.length>20)throw Error('最多保存 20 個情境');const ids=new Set();return raw.map(s=>{if(!s||typeof s!=='object'||Array.isArray(s))throw Error('情境格式不正確');const id=text(s.id,'情境識別碼',100);if(!id||ids.has(id))throw Error('情境識別碼空白或重複');ids.add(id);const name=text(s.name,'情境名稱');if(!name.trim())throw Error('請輸入情境名稱');for(const k of ['createdAt','updatedAt'])if(typeof s[k]!=='string'||!Number.isFinite(Date.parse(s[k])))throw Error('情境日期不正確');return {id,name,createdAt:s.createdAt,updatedAt:s.updatedAt,actions:validateActions(s.actions)};});}
 function upsert(store,item){const list=validateStore(store),found=list.findIndex(x=>x.id===item.id);if(found<0&&list.length>=20)throw Error('最多保存 20 個情境');if(found>=0)list[found]=item;else list.push(item);return validateStore(list);}
 function loanComparison(raw,annualReturn=raw.investmentReturn,firstYearReturn=null){

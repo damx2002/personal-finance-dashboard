@@ -1,10 +1,12 @@
-# Personal Finance Dashboard V4
+# Personal Finance Dashboard V4.1
 
 繁體中文、免費、免登入的個人財務儀表板。保留 Light / Dark、localStorage、財務摘要 PNG、快照趨勢、壓力測試與 JSON 備份；新增財務決策實驗室、相同月現金流的借款投資比較、獨立情境保存與 PWA 離線能力。
 
 **所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。**
 
 清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。沒有帳號、資料庫、第三方追蹤、分析或外部 API。程式使用 CSP `connect-src 'none'` 與 `form-action 'none'`，僅載入本地靜態資源。
+
+[V4.1 財務解讀、每日重置壓力模型、AI 隱私文字與驗收說明](V4.1.md)
 
 [V4 決策實驗室、公式、情境儲存、PWA 與驗收說明](V4.md)
 
@@ -30,6 +32,8 @@ V3 會自動讀取既有 V2 / V1，驗證後寫入新的 `personal-finance-dashb
 
 ## 維護
 
+V4.1 新增 `stress-core.js` 與 `health-analysis.js`，供 Dashboard、情境實驗室和摘要圖共用。正式財務 schema 維持 V3，壓力偏好使用獨立 key，無需 migration。
+
 主要檔案：`index.html`、`style.css`、`app.js`、`v3-core.js`、`summary.js`。改動後重新產生單檔版：
 
 ```sh
@@ -41,6 +45,9 @@ node tests/appearance.cjs
 node tests/scenario-core.cjs
 node tests/scenario-browser.cjs
 node tests/pwa.cjs
+node tests/stress-core.cjs
+node tests/health-analysis.cjs
+node tests/insight-browser.cjs
 ```
 
 瀏覽器測試需要開發機安裝 Playwright 與 Chromium；使用者直接開網頁不需要安裝。可用 `CHROMIUM_PATH` 指定瀏覽器。測試涵蓋 Desktop Chromium 與 Android Chrome 模擬，非實體手機。
