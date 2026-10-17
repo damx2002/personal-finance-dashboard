@@ -41,12 +41,26 @@ function derived(d){
 }
 function debtSummary(d){const total=d.debts.reduce((s,x)=>s+x.balance,0),missing=d.debts.some(x=>x.balance>0&&x.annualRate===null);const interest=missing?null:d.debts.reduce((s,x)=>s+x.balance*(x.annualRate||0)/100,0);return {total,payments:d.debts.reduce((s,x)=>s+x.monthlyPayment,0),investmentDebt:d.debts.reduce((s,x)=>s+x.investmentAmount,0),interest,weightedRate:total>0&&interest!==null?interest/total*100:null};}
 function futureValue(principal,monthly,months,annual){const log=Math.log1p(annual)/12,growth=Math.exp(log*months),annuity=log===0?months:Math.expm1(log*months)/Math.expm1(log);return principal*growth+monthly*annuity;}
-function requiredReturn(d){
- const p=derived(d).cash+d.regular+d.leveraged,n=(d.targetAge-d.currentAge)*12,t=d.targetAssets,c=d.monthlyInvestment;
- if(t<=0)return {kind:'unset'};if(n<=0)return {kind:'noTime'};
+// Goal preferences live outside the V3 financial envelope.
+const GOAL_SETTINGS_KEY='personal-finance-dashboard.goal-settings';
+function validateGoalSettings(raw){if(!raw||!['investment','financial'].includes(raw.basis))throw Error('目標計算基準格式不正確');return {basis:raw.basis};}
+function goalInputs(d,basis='investment'){
+ validateGoalSettings({basis});const cash=derived(d).cash,investment=d.regular+d.leveraged;
+ return {basis,cash,investment,financial:cash+investment,currentGoalAssets:investment+(basis==='financial'?cash:0),constantCash:basis==='financial'?cash:0,basisLabel:basis==='financial'?'金融資產':'投資資產'};
+}
+function goalFutureValue(d,annual,basis='investment',months=(d.targetAge-d.currentAge)*12){const g=goalInputs(d,basis);return g.constantCash+futureValue(g.investment,d.monthlyInvestment,months,annual);}
+function goalEstimate(d,basis='investment'){
+ const g=goalInputs(d,basis),years=d.targetAge-d.currentAge;if(d.targetAssets<=0||years<0)return null;
+ const n=years*12,log=Math.log1p(d.annualReturn/100)/12,growth=Math.exp(log*n),annuity=log===0?n:Math.expm1(log*n)/Math.expm1(log);
+ const required=annuity>0?Math.max(0,(d.targetAssets-g.constantCash-g.investment*growth)/annuity):null;
+ return {...g,years,completion:g.currentGoalAssets/d.targetAssets,projected:goalFutureValue(d,d.annualReturn/100,basis,n),extra:required===null?null:Math.max(0,Math.ceil(required-d.monthlyInvestment-1e-9))};
+}
+function requiredReturn(d,basis='investment'){
+ const g=goalInputs(d,basis),p=g.investment,n=(d.targetAge-d.currentAge)*12,t=d.targetAssets-g.constantCash,c=d.monthlyInvestment;
+ if(d.targetAssets<=0)return {kind:'unset'};if(n<=0)return {kind:'noTime'};
  if(futureValue(p,c,n,0)>=t)return {kind:'zero',rate:0};
  if(p===0&&c===0)return {kind:'noCapital'};
- let low=0,high=1; // Bound at 100% annual; above this is reported without inventing a number.
+ let low=0,high=1; // Bound at 100% annual; cash is fixed and never compounded.
  if(futureValue(p,c,n,high)<t)return {kind:'aboveRange'};
  for(let i=0;i<100;i++){const mid=(low+high)/2;if(futureValue(p,c,n,mid)<t)low=mid;else high=mid;}
  const rate=high,label=rate<.05?'低於目前保守情境':rate<=.08?'介於保守與基準情境':rate<=.12?'介於基準與積極情境':'高於目前積極情境';return {kind:'rate',rate,label};
@@ -96,6 +110,6 @@ function migrate(raw){
  }
  return result;
 }
-const api={cashKeys,scalarDefaults,defaults,validateData,derived,debtSummary,futureValue,requiredReturn,allocation,migrate,emptyEnvelope,clone};
+const api={cashKeys,scalarDefaults,defaults,validateData,derived,debtSummary,futureValue,GOAL_SETTINGS_KEY,validateGoalSettings,goalInputs,goalFutureValue,goalEstimate,requiredReturn,allocation,migrate,emptyEnvelope,clone};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.FinanceCore=api;
 })(typeof window!=='undefined'?window:globalThis);

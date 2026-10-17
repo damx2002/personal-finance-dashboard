@@ -44,7 +44,17 @@ function explainMetrics() {
   const paymentStatus=paymentRow?.querySelector('dd')?.classList.contains('danger')?'danger':paymentRow?.querySelector('dd')?.classList.contains('caution')?'caution':'';
   addExplanation(paymentRow,payment+` 你的警戒線：${decimal.format(d.maxPaymentRatio)}%。固定債務支出占比愈高，每月可調整的現金流空間愈小，可優先檢視還款安排與必要支出。 `+personal,payment+' 可優先檢視固定還款安排。',paymentStatus);
   addExplanation(row('投資用途負債 / 投資市值'),c.investmentDebtRatio===null?'目前沒有投資市值，無法計算借款占比；可先核對投資用途借款。':`目前投資資產中約 ${percent(c.investmentDebtRatio)} 是由借款支撐。市場下跌時，投資市值會下降，但貸款本金不會同步下降。此項未設定警戒線，可搭配綜合槓桿，優先檢視借款規模與還款來源。`,c.investmentDebtRatio===null?'目前無投資市值，暫不計算借款占比。':`約 ${percent(c.investmentDebtRatio)} 投資由借款支撐，下跌時貸款本金不會同步減少。`);
+  renderCompositions(d,c);
   renderMonthComparison();
+}
+function renderCompositions(d,c){
+ const sets=[['financialAssets','financial-composition',[
+ ['日常可動用現金',d.cashDaily,'cashDaily'],['緊急預備金',d.cashEmergency,'cashEmergency'],['投資預備金',d.cashInvestmentReserve,'cashInvestmentReserve'],['指定用途預留資金',d.cashEarmarked,'cashEarmarked'],['現金小計',d.cash,'cash'],['一般股票 / ETF',d.regular,'regular'],['槓桿 ETF',d.leveraged,'leveraged'],['投資資產小計',c.investment,'investment'],['金融資產',c.financial,'financial']
+ ],`金融資產 = 現金小計 + 投資資產小計\n${money(c.financial)} = ${money(d.cash)} + ${money(c.investment)}`],['netWorth','net-composition',[
+ ['現金',d.cash,'cash'],['投資資產',c.investment,'investment'],['房屋',d.home,'home'],['其他資產',d.other,'other'],['總資產',c.assets,'assets'],['減：房貸',d.mortgage,'mortgage'],['減：信貸 / 其他負債',d.loan,'loan'],['總負債',c.debt,'debt'],['淨資產',c.net,'net']
+ ],`淨資產 = 總資產 − 總負債\n${money(c.net)} = ${money(c.assets)} − ${money(c.debt)}`]];
+ for(const[id,detailId,rows,formula]of sets){const host=ui(id).closest('.kpi');let details=ui(detailId);if(!details){details=document.createElement('details');details.id=detailId;details.className='kpi-composition';const summary=document.createElement('summary');summary.textContent='ⓘ 查看組成與算法';details.append(summary,document.createElement('dl'),document.createElement('p'));host.append(details);}
+ const dl=details.querySelector('dl');dl.replaceChildren(...rows.map(([label,value,part])=>{const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');row.dataset.part=part;row.dataset.value=value;dt.textContent=label;dd.textContent=money(value);row.append(dt,dd);return row;}));details.querySelector('p').textContent=formula;}
 }
 function previousMonth(month) {
   const [year,m]=month.split('-').map(Number);return `${m===1?year-1:year}-${String(m===1?12:m-1).padStart(2,'0')}`;
@@ -64,7 +74,7 @@ function summaryModel(snapshot, hide) {
   const d=FinanceCore.derived(state.data),c=calculate(d), s=snapshot;
   const date=s?s.date:localDate();
   const financial=s?s.financial:c.financial,net=s?s.net:c.net,debt=s?s.debt:c.debt,assets=s?s.net+s.debt:c.assets;
-  const goal=s?null:(d.targetAssets>0?d.targetAssets:null);
+  const goal=s?null:(d.targetAssets>0?d.targetAssets:null),g=s?null:HealthAnalysis.goal(state.data,new Date().getFullYear(),goalSettings.basis);
   const unavailable='未記錄';
   const rows=hide?[
     ['淨資產完成率',goal?percent(net/goal):s?unavailable:'未設定目標'],
@@ -72,14 +82,14 @@ function summaryModel(snapshot, hide) {
     ['債務還款 / 月收入',s?unavailable:percent(c.paymentRatio)],
     ['現金緩衝月數',s?unavailable:c.runway===null?'—':`${decimal.format(c.runway)} 個月`],
     ['綜合市場槓桿',multiple(s?s.leverage:c.leverage)],
-    ['財務目標完成率',goal?percent(financial/goal):s?unavailable:'未設定目標']
+    ['財務目標完成率',goal?percent(g.completion):s?unavailable:'未設定目標']
   ]:[
     ['淨資產',money(net)],['金融資產',money(financial)],['總資產',money(assets)],['總負債',money(debt)],
     ['現金緩衝月數',s?unavailable:c.runway===null?'—':`${decimal.format(c.runway)} 個月`],
     ['每月債務還款 / 月收入',s?unavailable:percent(c.paymentRatio)],
     ['投資總市值',money(s?s.investment:c.investment)],['綜合市場槓桿',multiple(s?s.leverage:c.leverage)]
   ];
-  return {date,hide,demo:demoActive,snapshot:!!s,meta:s?null:{allocation:FinanceCore.allocation(state.data),required:FinanceCore.requiredReturn(state.data),goal:HealthAnalysis.goal(state.data,new Date().getFullYear()),stressLabel:StressCore.label(stressSettings)},rows,goal:hide?[]:[['目前金融資產',money(financial)],['目標金融資產',goal?money(goal):s?unavailable:'未設定'],['完成率',goal?percent(financial/goal):s?unavailable:'—'],['目標年齡',s?unavailable:goal?`${d.targetAge} 歲`:'未設定']],stress:hide?[]:[20,30,50].map(drop=>[`大盤 −${drop}%`,s?unavailable:c.scenarios.find(r=>r.drop===drop).ok?money(c.scenarios.find(r=>r.drop===drop).net):'無有效示意路徑']),notes:s?['歷史快照未記錄現金流、目標與壓力情境，缺項標示未記錄。','總資產以快照淨資產加總負債還原，未混用目前資料。']:hide?['淨資產完成率 = 淨資產 ÷ 目標金融資產（參考同一目標）。','財務目標完成率 = 金融資產 ÷ 目標金融資產。']:['現金、目標與市場情境均依目前有效輸入估算。']};
+  return {date,hide,demo:demoActive,snapshot:!!s,meta:s?null:{allocation:FinanceCore.allocation(state.data),required:g.required,goal:g,stressLabel:StressCore.label(stressSettings)},rows,goal:hide?[]:[[s?'目前金融資產':`目前${g.basisLabel}`,s?money(financial):money(g.currentGoalAssets)],[s?'目標金融資產':`目標${g.basisLabel}`,goal?money(goal):s?unavailable:'未設定'],['完成率',goal?percent(g.completion):s?unavailable:'—'],['目標年齡',s?unavailable:goal?`${d.targetAge} 歲`:'未設定']],stress:hide?[]:[20,30,50].map(drop=>[`大盤 −${drop}%`,s?unavailable:c.scenarios.find(r=>r.drop===drop).ok?money(c.scenarios.find(r=>r.drop===drop).net):'無有效示意路徑']),notes:s?['歷史快照未記錄現金流、目標與壓力情境，缺項標示未記錄。','總資產以快照淨資產加總負債還原，未混用目前資料。']:hide?['淨資產完成率 = 淨資產 ÷ 設定目標（另項參考）。',`財務目標以${g.basisLabel}為基準；現金不套用投資報酬。`]:['現金、目標與市場情境均依目前有效輸入估算。']};
 }
 function drawSummary(model) {
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
@@ -91,7 +101,7 @@ function drawSummary(model) {
   ctx.fillStyle=palette.bg;ctx.fillRect(0,0,1080,1350);
   text('MY FINANCE',60,58,18,palette.accent,600);text('我的財務摘要',60,120,48,palette.text,700);
   text(model.date.replaceAll('-','/'),60,164,25,palette.muted);text(model.demo?'範例資料 · 非本人財務':model.hide?'分享版 · 金額已隱藏':model.snapshot?'每月快照':'個人財務概覽',650,160,24,palette.muted,400,370);
-  if(model.meta)text(model.meta.goal.label,60,190,20,palette.accent,600,960);
+  if(model.meta)text(model.meta.goal.label+' · 目標基準：'+model.meta.goal.basisLabel,60,190,20,palette.accent,600,960);
   const cols=2,w=470,gap=20, start=205,h=model.hide?175:112;
   model.rows.forEach(([label,value],i)=>{const x=60+(i%cols)*(w+gap),y=start+Math.floor(i/cols)*(h+14);box(x,y,w,h);text(label,x+22,y+36,23,palette.muted);text(value,x+22,y+(model.hide?106:83),model.hide?44:34,palette.text,650,w-44);});
   let y=model.hide?835:760;
