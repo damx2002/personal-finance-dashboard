@@ -47,6 +47,7 @@ python scripts/build-single.py
 node tests/core.cjs
 node tests/browser.cjs
 node tests/summary.cjs
+node tests/summary-copy.cjs
 node tests/appearance.cjs
 node tests/scenario-core.cjs
 node tests/scenario-browser.cjs
@@ -77,3 +78,5 @@ GitHub **Settings → Pages → Deploy from a branch → main → /(root) → Sa
 PWA 首次須連線並等離線資源準備完成，再用 Android Chrome 安裝／新增到主畫面。快取只有靜態程式，財務資料仍在 localStorage。新版本等待使用者按「重新載入更新」，不會在輸入中自動重載。每次修改靜態檔都必須執行 `python scripts/build-single.py`，同步單檔版與 service worker 內容版本。
 
 iPhone／iPad 加入主畫面：用 Safari 開啟網站，點「分享」→「加入主畫面」→「新增」。網站的「安裝／新增到主畫面」會在按鈕下方顯示步驟；iOS 不會由網站按鈕直接跳出安裝視窗。已從主畫面開啟時則提示無需重複新增。
+
+財務摘要 PNG：維持 1080 × 1350，六張核心卡片加次要資訊、目標與市場壓力摘要。完整版呈現金額與相對衝擊；隱藏金額版只呈現比例、月份、倍數與目標時間。歷史快照缺少的欄位仍標示「未記錄」，不套用目前財務設定。所有圖片均在瀏覽器 Canvas 本機產生。

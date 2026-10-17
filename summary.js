@@ -72,53 +72,76 @@ function renderMonthComparison() {
 }
 let summaryURL=null;
 let summaryBusy=false;
+function summaryGoalNote(required) {
+  if(required.kind==='zero')return '依目前本金與固定投入，不計投資報酬亦可達成設定目標。';
+  if(required.kind!=='rate')return requiredReturnText(required)+'；僅為數學情境估算。';
+  const range=required.rate>.12?'高於 12% 情境':required.rate>.08?'介於 8%～12% 情境':required.rate>.05?'介於 5%～8% 情境':'低於 5% 情境';
+  return `以目前投入與期限估算，達標所需報酬${range}。`;
+}
 function summaryModel(snapshot, hide) {
-  const d=FinanceCore.derived(state.data),c=calculate(d), s=snapshot;
-  const date=s?s.date:localDate();
-  const financial=s?s.financial:c.financial,net=s?s.net:c.net,debt=s?s.debt:c.debt,assets=s?s.net+s.debt:c.assets;
-  const goal=s?null:(d.targetAssets>0?d.targetAssets:null),g=s?null:HealthAnalysis.goal(state.data,new Date().getFullYear(),goalSettings.basis);
-  const unavailable='未記錄';
-  const rows=hide?[
-    ['淨資產完成率',goal?percent(net/goal):s?unavailable:'未設定目標'],
-    ['負債 / 資產',percent(assets>0?debt/assets:null)],
-    ['債務月付 / 平均月收入',s?unavailable:percent(c.paymentRatio)],
-    ['現金緩衝月數',s?unavailable:c.runway===null?'—':`${decimal.format(c.runway)} 個月`],
-    ['綜合市場槓桿',multiple(s?s.leverage:c.leverage)],
-    ['財務目標完成率',goal?percent(g.completion):s?unavailable:'未設定目標']
-  ]:[
-    ['淨資產',money(net)],['金融資產',money(financial)],['總資產',money(assets)],['總負債',money(debt)],
-    ['現金緩衝月數',s?unavailable:c.runway===null?'—':`${decimal.format(c.runway)} 個月`],
-    ['債務月付 / 平均月收入',s?unavailable:percent(c.paymentRatio)],
-    ['股票 / ETF 投資資產',money(s?s.investment:c.investment)],['綜合市場槓桿',multiple(s?s.leverage:c.leverage)]
+  const d=FinanceCore.derived(state.data),c=calculate(d),s=snapshot,unavailable='未記錄';
+  const date=s?s.date:localDate(),financial=s?s.financial:c.financial,net=s?s.net:c.net,debt=s?s.debt:c.debt,assets=s?s.net+s.debt:c.assets;
+  const g=s?null:HealthAnalysis.goal(state.data,new Date().getFullYear(),goalSettings.basis),goal=g?.target>0?g.target:null;
+  const validTime=!!(goal&&g.targetYear),goalTime=validTime?`約 ${g.targetYear} 年・${g.targetAge} 歲`:s?unavailable:'尚未設定有效目標時間';
+  const leverage=s?s.leverage:c.leverage;
+  const cashStatus=s||c.runway===null?'':c.runway<d.minRunway?'danger':c.runway<=d.minRunway*1.2?'caution':'';
+  const paymentStatus=s?'':highRisk(c.paymentRatio,d.maxPaymentRatio/100*.8-1e-12,d.maxPaymentRatio/100);
+  const leverageStatus=s?'':highRisk(c.leverage,d.maxLeverage*.8-1e-12,d.maxLeverage);
+  const threshold=(status,normal)=>status==='danger'?'高於':status==='caution'?'接近':normal;
+  const progressNote=!goal?s?unavailable:'尚未設定目標':g.completion>=1?hide?'目前已達成設定目標':g.surplus>0?`目前已高於設定目標 ${money(g.surplus)}`:'目前已達成設定目標':hide?`距離目標尚有 ${percent(1-g.completion)}`:`距離目標尚差 ${money(g.gap)}`;
+  const rows=[
+    ['淨資產',hide?'已隱藏':money(net),'總資產 − 總負債'],
+    ['金融資產',hide?'已隱藏':money(financial),'現金 + 股票 / ETF'],
+    ['現金緩衝',s?unavailable:c.runway===null?'暫不計算':`${decimal.format(c.runway)} 個月`,s?unavailable:c.runway===null?'目前無生活與債務支出':`${cashStatus==='danger'?'低於':cashStatus==='caution'?'接近':'高於'}自訂 ${decimal.format(d.minRunway)} 個月門檻`,cashStatus],
+    ['債務月付比',s?unavailable:percent(c.paymentRatio),'每月債務還款 ÷ 平均月收入',paymentStatus,s?unavailable:c.paymentRatio===null?'目前無平均月收入':`${threshold(paymentStatus,'低於')}自訂 ${decimal.format(d.maxPaymentRatio)}% 提醒線`],
+    ['綜合市場槓桿',leverage===null?'無法計算有效倍數':multiple(leverage),'等效曝險 ÷ 投資淨值',leverageStatus,s?unavailable:leverage===null?'投資淨值不大於零或尚無投資':`${threshold(leverageStatus,'低於')}自訂 ${d.maxLeverage.toFixed(2)}x 提醒線`],
+    ['目標完成率',goal?percent(g.completion):s?unavailable:'尚未設定',progressNote]
   ];
-  return {date,hide,demo:demoActive,snapshot:!!s,meta:s?null:{allocation:FinanceCore.allocation(state.data),required:g.required,goal:g,stressLabel:StressCore.label(stressSettings)},rows,goal:hide?[]:[[s?'目前金融資產':`目前${g.basisLabel}`,s?money(financial):money(g.currentGoalAssets)],[s?'目標金融資產':`目標${g.basisLabel}`,goal?money(goal):s?unavailable:'未設定'],['完成率',goal?percent(g.completion):s?unavailable:'—'],['目標年齡',s?unavailable:goal?`${d.targetAge} 歲`:'未設定']],stress:hide?[]:[20,30,50].map(drop=>[`大盤 −${drop}%`,s?unavailable:c.scenarios.find(r=>r.drop===drop).ok?money(c.scenarios.find(r=>r.drop===drop).net):'無有效示意路徑']),notes:s?['歷史快照未記錄現金流、目標與壓力情境，缺項標示未記錄。','總資產以快照淨資產加總負債還原，未混用目前資料。']:hide?['淨資產完成率 = 淨資產 ÷ 設定目標（另項參考）。',`財務目標以${g.basisLabel}為基準；現金不套用投資報酬。`]:['現金、目標與市場情境均依目前有效輸入估算。']};
+  // Keep historical figures isolated: snapshots do not contain goal, cash-flow or stress inputs.
+  const goalRows=hide?[
+    ['完成率',goal?percent(g.completion):s?unavailable:'未設定'],['目標時間',goalTime],['達標所需年化報酬',g?requiredReturnText(g.required):unavailable]
+  ]:[
+    [s?'目前金融資產':`目前${g.basisLabel}`,s?money(financial):money(g.currentGoalAssets)],
+    [s?'目標金融資產':`目標${g.basisLabel}`,goal?money(goal):s?unavailable:'未設定'],
+    ['完成率',goal?percent(g.completion):s?unavailable:'未設定'],['目標時間',goalTime],
+    ['距離目標尚差',goal?money(g.gap):s?unavailable:'未設定'],['達標所需年化報酬',g?requiredReturnText(g.required):unavailable]
+  ];
+  const relative=(value,base)=>Number.isFinite(value)&&base!==0?`${value-base<0?'−':value-base>0?'+':''}${percent(Math.abs((value-base)/Math.abs(base)))}`:'基期為零，暫不計算';
+  const stress=[20,30,50].map(drop=>{const r=s?null:c.scenarios.find(row=>row.drop===drop);return {label:`大盤 −${drop}%`,value:s?unavailable:!r.ok?'無有效示意路徑':hide?null:money(r.net),net:s?unavailable:!r.ok?'無有效示意路徑':relative(r.net,c.net),equity:s?unavailable:!r.ok?'無有效示意路徑':relative(r.equity,c.equity)};});
+  const allocation=s?null:FinanceCore.allocation(state.data);
+  return {date,hide,demo:demoActive,snapshot:!!s,headerGoal:validTime?`目標：${goalTime}｜${g.basisLabel}目標`:null,
+    meta:s?null:{allocation,required:g.required,goal:g,stressLabel:StressCore.label(stressSettings)},rows,goal:goalRows,stress,
+    secondary:hide?[]:[['總資產',money(assets)],['總負債',money(debt)],['股票 / ETF 投資資產',money(s?s.investment:c.investment)]],
+    allocationLine:allocation?'投資池｜'+['一般','槓桿','預備金'].map((name,i)=>`${name} ${percent(allocation.ratios[i])}`).join('・'):null,
+    reminderLine:s?null:`自訂提醒｜現金 ${decimal.format(d.minRunway)} 個月・月付比 ${decimal.format(d.maxPaymentRatio)}%・槓桿 ${d.maxLeverage.toFixed(2)}x`,
+    goalTitle:g?g.basisLabel+'目標':'歷史快照',goalNote:g?summaryGoalNote(g.required):'歷史快照未記錄目標、現金流與壓力情境；未混用目前資料。',
+    stressNote:'市場情境僅調整股票 / ETF；現金、房屋與負債維持不變。'};
 }
 function drawSummary(model) {
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('此瀏覽器無法產生圖片');
   const dark=document.documentElement.dataset.theme==='dark';
-  const palette=dark?{bg:'#101e1a',panel:'#1a2b25',text:'#e1ece5',muted:'#adc3b5',line:'#334d40',accent:'#b4d9be'}:{bg:'#f4f7f5',panel:'#ffffff',text:'#24332d',muted:'#718078',line:'#d9e4de',accent:'#5e8f7a'};
-  const text=(value,x,y,size=28,color=palette.text,weight=400,maxWidth)=>{ctx.fillStyle=color;ctx.font=`${weight} ${size}px "Noto Sans CJK TC", "Noto Sans CJK JP", "Microsoft JhengHei", sans-serif`;let actual=size;if(maxWidth){while(ctx.measureText(value).width>maxWidth&&actual>12){actual--;ctx.font=`${weight} ${actual}px "Noto Sans CJK TC", "Noto Sans CJK JP", "Microsoft JhengHei", sans-serif`;}}ctx.fillText(value,x,y);};
+  const palette=dark?{bg:'#101e1a',panel:'#1a2b25',text:'#e1ece5',muted:'#adc3b5',line:'#334d40',accent:'#b4d9be',caution:'#d7b56d',danger:'#e4a2a2'}:{bg:'#f4f7f5',panel:'#ffffff',text:'#24332d',muted:'#718078',line:'#d9e4de',accent:'#5e8f7a',caution:'#c58b2a',danger:'#c86464'};
+  const text=(value,x,y,size=28,color=palette.text,weight=400,maxWidth=960)=>{ctx.fillStyle=color;ctx.font=`${weight} ${size}px "Noto Sans CJK TC", "Noto Sans CJK JP", "Microsoft JhengHei", sans-serif`;let actual=size;while(ctx.measureText(value).width>maxWidth&&actual>12){actual--;ctx.font=`${weight} ${actual}px "Noto Sans CJK TC", "Noto Sans CJK JP", "Microsoft JhengHei", sans-serif`;}ctx.fillText(value,x,y);};
   const box=(x,y,w,h)=>{ctx.fillStyle=palette.panel;ctx.beginPath();ctx.roundRect(x,y,w,h,16);ctx.fill();};
   ctx.fillStyle=palette.bg;ctx.fillRect(0,0,1080,1350);
   text('MY FINANCE',60,58,18,palette.accent,600);text('我的財務摘要',60,120,48,palette.text,700);
-  text(model.date.replaceAll('-','/'),60,164,25,palette.muted);text(model.demo?'範例資料 · 非本人財務':model.hide?'分享版 · 金額已隱藏':model.snapshot?'每月快照':'個人財務概覽',650,160,24,palette.muted,400,370);
-  if(model.meta)text(model.meta.goal.label+' · 目標基準：'+model.meta.goal.basisLabel,60,190,20,palette.accent,600,960);
-  const cols=2,w=470,gap=20, start=205,h=model.hide?175:112;
-  model.rows.forEach(([label,value],i)=>{const x=60+(i%cols)*(w+gap),y=start+Math.floor(i/cols)*(h+14);box(x,y,w,h);text(label,x+22,y+36,23,palette.muted);text(value,x+22,y+(model.hide?106:83),model.hide?44:34,palette.text,650,w-44);});
-  let y=model.hide?835:760;
-  if(!model.hide){
-    text(model.meta?model.meta.goal.basisLabel+'目標':'財務目標',60,y,27,palette.accent,650);y+=24;box(60,y,960,154);
-    model.goal.forEach(([label,value],i)=>{const x=85+(i%2)*480,cy=y+36+Math.floor(i/2)*65;text(label,x,cy,21,palette.muted);text(value,x+225,cy,24,palette.text,600,220);});
-    y+=200;text('市場壓力摘要 · 整體淨資產'+(model.meta?' · '+model.meta.stressLabel:''),60,y,23,palette.accent,650,960);y+=20;
-    model.stress.forEach(([label,value],i)=>{box(60+i*325,y,310,100);text(label,80+i*325,y+32,22,palette.muted);text(value,80+i*325,y+76,28,palette.text,650,270);});
-    y+=140;
-  }
-  model.notes.forEach((note,i)=>text(note,60,y+i*30,21,palette.muted,400,960));
-  if(model.hide&&model.meta)text('市場壓力模型：'+model.meta.stressLabel,60,1135,20,palette.muted,400,960);
-  if(model.meta){const allocation=model.meta.allocation;const line='投資池配置：'+['一般','槓桿','預備金'].map((name,i)=>`${name} ${percent(allocation.ratios[i])}`).join(' ／ ');text(line,60,1190,20,palette.muted,400,960);text(`達標所需年化報酬率：${requiredReturnText(model.meta.required)}`,60,1220,20,palette.muted,400,960);}
-  ctx.strokeStyle=palette.line;ctx.beginPath();ctx.moveTo(60,1250);ctx.lineTo(1020,1250);ctx.stroke();
-  text('資料為使用者自行輸入之簡化財務估算，不構成投資建議。',60,1293,23,palette.muted,400,960);
+  text(model.date.replaceAll('-','/'),60,164,25,palette.muted);text(model.demo?'範例資料 · 非本人財務':model.hide?'分享版 · 金額已隱藏':model.snapshot?'每月快照':'個人財務概覽',650,160,22,palette.muted,400,370);
+  if(model.headerGoal)text(model.headerGoal,60,193,21,palette.accent,600);
+  model.rows.forEach(([label,value,helper,status,note],i)=>{const x=60+(i%2)*490,y=212+Math.floor(i/2)*132;box(x,y,470,120);text(label,x+20,y+29,22,palette.muted);text(value,x+20,y+65,34,palette[status]||palette.text,650,430);text(helper,x+20,y+91,19,palette.muted,400,430);if(note)text(note,x+20,y+113,18,palette[status]||palette.muted,400,430);});
+  model.secondary.forEach(([label,value],i)=>{const x=60+i*325;text(label,x,622,18,palette.muted,400,310);text(value,x,652,25,palette.text,600,310);});
+  if(model.allocationLine)text(model.allocationLine,60,687,21,palette.muted);
+  if(model.reminderLine)text(model.reminderLine,60,716,20,palette.muted);
+  text(model.goalTitle,60,756,27,palette.accent,650);box(60,774,960,218);
+  const order=model.hide?model.goal:[model.goal[0],model.goal[1],model.goal[4],model.goal[2],model.goal[3],model.goal[5]];
+  order.forEach(([label,value],i)=>{const x=84+(i%2)*480,y=805+Math.floor(i/2)*54;text(label,x,y,18,palette.muted);text(value,x,y+27,24,palette.text,600,430);});
+  text(model.goalNote,84,973,20,palette.muted,400,912);
+  text('市場壓力摘要',60,1031,27,palette.accent,650);
+  text('整體淨資產｜'+(model.meta?model.meta.stressLabel:'歷史快照未記錄模型'),60,1060,20,palette.muted);
+  model.stress.forEach((r,i)=>{const x=60+i*325;box(x,1076,310,130);text(r.label,x+18,1105,22,palette.muted);if(r.value!==null)text(r.value,x+18,1141,28,palette.text,650,274);text('整體淨資產 '+r.net,x+18,model.hide?1145:1170,19,palette.muted,400,274);text('投資淨值 '+r.equity,x+18,model.hide?1178:1195,19,palette.muted,400,274);});
+  text(model.snapshot?'歷史快照僅呈現當月已記錄資訊。':model.stressNote,60,1236,21,palette.muted);
+  ctx.strokeStyle=palette.line;ctx.beginPath();ctx.moveTo(60,1264);ctx.lineTo(1020,1264);ctx.stroke();
+  text('資料依使用者輸入進行簡化估算，不構成投資建議。',60,1306,23,palette.muted);
   return canvas;
 }
 async function generateSummary(snapshot=null) {
