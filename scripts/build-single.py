@@ -3,9 +3,9 @@ from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 import re
 html = (root / 'index.html').read_text()
-html = re.sub(r'(style\.css|app\.js|summary\.js|v3-core\.js|stress-core\.js|health-analysis\.js|scenario-core\.js|scenario-ui\.js|pwa\.js)\?[^\"]*', r'\1', html)
+html = re.sub(r'(style\.css|app\.js|summary\.js|v3-core\.js|stress-core\.js|health-analysis\.js|input-guidance\.js|scenario-core\.js|scenario-ui\.js|pwa\.js)\?[^\"]*', r'\1', html)
 html = html.replace('<link rel="stylesheet" href="style.css">', '<style>' + (root / 'style.css').read_text() + '</style>')
-scripts = ['v3-core.js', 'stress-core.js', 'scenario-core.js', 'health-analysis.js', 'app.js', 'summary.js', 'scenario-ui.js', 'pwa.js']
+scripts = ['v3-core.js', 'stress-core.js', 'scenario-core.js', 'health-analysis.js', 'app.js', 'input-guidance.js', 'summary.js', 'scenario-ui.js', 'pwa.js']
 for script in scripts:
     html = html.replace(f'<script src="{script}" defer></script>', '')
 html = html.replace('</body>', ''.join('<script>' + (root / script).read_text() + '</script>' for script in scripts) + '</body>')

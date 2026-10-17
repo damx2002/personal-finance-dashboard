@@ -85,6 +85,18 @@ function allocation(d){
  if(impossible)return {...result,kind:'impossible',monthly:units.map(x=>x/100)};
  return {...result,kind:'valid',finalTotal,additions,additionalCapitalRequired:Math.max(0,finalTotal-total),monthly:units.map(x=>x/100)};
 }
+// Derived decision references only; no new financial fields or storage.
+function annualExpenseCalculator(annual){if(!validNumber(annual))throw Error('請輸入有效的非負年度支出');return annual/12;}
+function decisionReferences(data){const d=derived(data),payments=d.mortgagePayment+d.loanPayment,spending=d.living+payments,monthlyIncome=d.income/12,investment=d.regular+d.leveraged,exposure=d.regular+d.leveraged*d.multiplier,equity=investment-d.investmentDebt;return {payments,spending,monthlyIncome,beforeInvestment:monthlyIncome-spending,afterInvestment:monthlyIncome-spending-d.monthlyInvestment,requiredBuffer:d.minRunway*spending,cashBuffer:d.cashBuffer,bufferDifference:d.cashBuffer-d.minRunway*spending,paymentLimit:monthlyIncome*d.maxPaymentRatio/100,paymentDifference:monthlyIncome*d.maxPaymentRatio/100-payments,currentLeverage:equity>0?exposure/equity:null};}
+function allocationConsistency(data){
+ const d=derived(data),a=allocation(data);if(!a.valid)return {kind:a.kind,deviations:[],conflict:false,leverage:null};
+ if(a.total<=0)return {kind:'empty',deviations:[],conflict:false,leverage:null};
+ const target=a.weights.map(x=>a.total*x/100),investment=target[0]+target[1],exposure=target[0]+target[1]*d.multiplier,equity=investment-d.investmentDebt;
+ const deviations=a.ratios.map((ratio,i)=>({index:i,current:ratio,target:a.weights[i]/100,difference:ratio-a.weights[i]/100})).filter(x=>Math.abs(x.difference)>1e-8).sort((x,y)=>Math.abs(y.difference)-Math.abs(x.difference)||x.index-y.index).slice(0,2);
+ const leverage=equity>0?exposure/equity:null;if(leverage!==null&&!Number.isFinite(leverage))return {kind:'aboveRange',deviations,conflict:false,leverage:null};
+ return {kind:equity>0?'valid':'nonPositiveEquity',pool:a.total,targetGeneral:target[0],targetLeveraged:target[1],targetReserve:target[2],targetInvestmentAssets:investment,targetExposure:exposure,targetInvestmentEquity:equity,leverage,conflict:leverage!==null&&leverage>d.maxLeverage,deviations};
+}
+function goalTimeFlex(data,basis='investment'){if(data.targetAssets<=0||data.targetAge<=data.currentAge)return [];return [0,1,2,3].map(offset=>({offset,age:data.targetAge+offset,required:requiredReturn({...data,targetAge:data.targetAge+offset},basis)}));}
 const aliases={cash:'cashDaily',mortgageBalance:'mortgage',monthlyMortgagePayment:'mortgagePayment',personalLoanBalance:'loan',monthlyLoanPayment:'loanPayment',investmentLoanBalance:'investmentDebt'};
 function legacyData(raw){
  if(!raw||typeof raw!=='object'||Array.isArray(raw)||!['cash','mortgage','mortgageBalance','regular'].some(k=>Object.hasOwn(raw,k)))throw Error('舊版資料格式不正確');
@@ -111,6 +123,6 @@ function migrate(raw){
  }
  return result;
 }
-const api={cashKeys,scalarDefaults,defaults,validateData,derived,debtSummary,futureValue,GOAL_SETTINGS_KEY,validateGoalSettings,goalInputs,goalFutureValue,goalEstimate,requiredReturn,allocation,migrate,emptyEnvelope,clone};
+const api={cashKeys,scalarDefaults,defaults,validateData,derived,debtSummary,futureValue,GOAL_SETTINGS_KEY,validateGoalSettings,goalInputs,goalFutureValue,goalEstimate,requiredReturn,allocation,annualExpenseCalculator,decisionReferences,allocationConsistency,goalTimeFlex,migrate,emptyEnvelope,clone};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.FinanceCore=api;
 })(typeof window!=='undefined'?window:globalThis);

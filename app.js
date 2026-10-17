@@ -87,7 +87,7 @@ function calculate(d) {
 function calculateGoal(d) {return FinanceCore.goalEstimate(d,goalSettings.basis);}
 function breakEven(d) {const result=StressCore.solveBreakEvenDrawdown({data:d,...stressSettings});return result.kind==='found'?result.drawdown:null;}
 function renderGoal(d) {
-  document.getElementById('return-scenarios').replaceChildren(...[[5, '保守'], [8, '基準'], [12, '積極'], [d.annualReturn, '自訂']].map(([rate, label]) => {
+  document.getElementById('return-scenarios').replaceChildren(...[[0, '零報酬'],[5, '保守'], [8, '基準'], [12, '積極'], [d.annualReturn, '自訂']].map(([rate, label]) => {
     const card = document.createElement('div'); card.className = 'scenario-card';
     const title = document.createElement('span'); title.textContent = `${label} ${decimal.format(rate)}%`;
     const value = document.createElement('strong'); const result = calculateGoal({ ...d, annualReturn: rate });
@@ -167,7 +167,8 @@ function render(d) {
     ['總資產', money(c.assets)], ['總負債', money(c.debt)],
     ['負債 / 資產比例', percent(c.debtRatio), debtRisk],
     ['債務月付 / 平均月收入', percent(c.paymentRatio), paymentRisk],
-    ['平均每月結餘（扣固定投資後）', money(c.balance), c.balance < 0 ? 'danger' : '']
+    ['固定投資前現金流餘裕',money(c.balance+d.monthlyInvestment),c.balance+d.monthlyInvestment<0?'danger':''],
+    ['固定投資後每月結餘', money(c.balance), c.balance < 0 && c.balance+d.monthlyInvestment<0 ? 'danger' : '']
   ]);
   renderRows('investment', [
     ['股票 / ETF 投資資產', money(c.investment)], ['投資用途負債',money(d.investmentDebt)], ['投資等效市場曝險', money(c.exposure)],
@@ -301,8 +302,8 @@ function renderDebtEditor(rows=state.draft?.debts||state.data.debts){
    el.dataset.debtField=key;el.name=`debt-${item.id}-${key}`;el.value=item[key]===null||item[key]===undefined?'':item[key];wrapper.append(el);grid.append(wrapper);if(type==='amount')wireDebtAmount(el);
    const small=document.createElement('small');small.className='field-helper';small.textContent=help;wrapper.append(small);
   }
-  const info=document.createElement('details');info.className='inline-info';const summary=document.createElement('summary');summary.textContent='ⓘ 投資用途金額如何計算？';const text=document.createElement('p');text.textContent='投資用途負債指其中已投入投資的借款本金，只是該筆負債的一部分，不會再次加入總負債。必須介於 0 與該筆餘額之間。';info.append(summary,text);box.append(grid,info);ui('debt-editor').append(box);
- });for(const field of amountFields)if(field.isConnected)formatAmountField(field);refreshAmountHints();
+  box.append(grid);ui('debt-editor').append(box);
+ });for(const field of amountFields)if(field.isConnected)formatAmountField(field);refreshAmountHints();window.dispatchEvent(new Event('finance-debt-editor'));
 }
 function showWizardStep(step){
  const monthly=fields.find(f=>f.name==='monthlyInvestment').closest('label');if(step===0||step===1){ui(step===0?'basic-monthly-slot':'goal-monthly-slot').append(monthly);monthly.firstChild.textContent=step===0?'每月固定投資金額 ':'每月固定投入 ';}
@@ -349,8 +350,6 @@ ui('wizard-next').addEventListener('click',()=>{
  showWizardStep(state.wizardStep+1);persist(false);
 });
 ui('add-debt').addEventListener('click',()=>{const rows=debtDraftRows();if(rows.length>=100){ui('wizard-error').hidden=false;ui('wizard-error').textContent='最多 100 筆負債。';return;}rows.push({id:crypto.randomUUID?crypto.randomUUID():`debt-${Date.now()}-${Math.random().toString(36).slice(2)}`,name:'',type:'personalLoan',balance:0,annualRate:null,monthlyPayment:0,remainingMonths:null,investmentAmount:0});renderDebtEditor(rows);update();});
-// Small optional explanations stay collapsed unless opened by the user.
-for(const name of ['cashInvestmentReserve','cashEarmarked','multiplier','allocationReserve']){const label=fields.find(f=>f.name===name).closest('label'),details=document.createElement('details'),summary=document.createElement('summary'),p=document.createElement('p');details.className='inline-info';summary.textContent='ⓘ';summary.setAttribute('aria-label','查看欄位說明');p.textContent=label.querySelector('.field-helper').textContent;details.append(summary,p);label.append(details);}
 function renderStress(d,c){
  const solved=StressCore.solveBreakEvenDrawdown({data:d,...stressSettings}),daily=stressSettings.model==='dailyReset';
  ui('stress-model-label').textContent=StressCore.label(stressSettings);ui('scenario-model-label').textContent='壓力模型：'+StressCore.label(stressSettings);
@@ -367,7 +366,7 @@ syncStressControls();
 ui('stress-controls').addEventListener('change',()=>{const candidate={model:ui('stress-model').value,path:ui('stress-path').value,days:Number(ui('stress-days').value),volatility:ui('stress-volatility').value==='custom'?(ui('stress-custom-volatility').value.trim()===''?NaN:Number(ui('stress-custom-volatility').value)):Number(ui('stress-volatility').value)};
  ui('custom-volatility-label').hidden=ui('stress-volatility').value!=='custom';try{stressSettings=StressCore.settings(candidate);stressSettingsError='';try{localStorage.setItem(StressCore.KEY,JSON.stringify(stressSettings));}catch{stressSettingsError='模型已切換，但儲存偏好失敗，重新開啟後可能無法保留。';}render(state.data);}catch{ui('stress-settings-message').textContent=StressCore.ERROR+'（自訂波動請填 0～25%。目前結果維持上一組有效設定。）';}});
 window.addEventListener('storage',e=>{if(e.key===StressCore.KEY){try{stressSettings=e.newValue?StressCore.settings(JSON.parse(e.newValue)):StressCore.defaults();stressSettingsError='';syncStressControls();render(state.data);}catch{ui('stress-settings-message').textContent='其他分頁的壓力設定無法讀取，目前設定維持不變。';}}});
-function syncGoalControls(){document.querySelectorAll('[data-goal-basis]').forEach(el=>el.value=goalSettings.basis);ui('target-assets-label').textContent='目標'+FinanceCore.goalInputs(state?.data||FinanceCore.defaults(),goalSettings.basis).basisLabel;ui('target-assets-helper').textContent=goalSettings.basis==='investment'?'目標只計一般股票 / ETF 與槓桿 ETF；不包含任何現金。':'目標包含全部現金與投資市值；現金在預估中以 0% 成長。';}
+function syncGoalControls(){document.querySelectorAll('[data-goal-basis]').forEach(el=>el.value=goalSettings.basis);ui('target-assets-label').textContent='目標'+FinanceCore.goalInputs(state?.data||FinanceCore.defaults(),goalSettings.basis).basisLabel;ui('target-assets-helper').textContent=goalSettings.basis==='investment'?'只計一般股票 / ETF 與槓桿 ETF；不含任何現金與投資預備金。':'包含所有現金與股票 / ETF；未來預估中現金暫以 0% 報酬計算。';}
 document.querySelectorAll('[data-goal-basis]').forEach(el=>{el.addEventListener('input',e=>e.stopPropagation());el.addEventListener('change',e=>{e.stopPropagation();goalSettings=FinanceCore.validateGoalSettings({basis:el.value});goalSettingsError='';if(!demoActive)try{localStorage.setItem(FinanceCore.GOAL_SETTINGS_KEY,JSON.stringify(goalSettings));}catch{goalSettingsError='目標基準已切換，但偏好儲存失敗；重新開啟後可能無法保留。';}render(state.data);renderV3();});});
 window.addEventListener('storage',e=>{if(e.key===FinanceCore.GOAL_SETTINGS_KEY){try{goalSettings=e.newValue?FinanceCore.validateGoalSettings(JSON.parse(e.newValue)):{basis:'investment'};goalSettingsError='';if(demoActive)realGoalSettings={...goalSettings};render(state.data);renderV3();}catch{ui('goal-settings-message').textContent='無法讀取其他分頁的目標基準，目前設定維持不變。';}}});
 let aiDirty=false;
