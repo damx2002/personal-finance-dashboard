@@ -60,6 +60,7 @@ node tests/refinements.cjs
 node tests/refinements-browser.cjs
 node tests/decision-core.cjs
 node tests/guidance-browser.cjs
+node tests/filling-guide.cjs
 ```
 
 瀏覽器測試需要開發機安裝 Playwright 與 Chromium；使用者直接開網頁不需要安裝。可用 `CHROMIUM_PATH` 指定瀏覽器。測試涵蓋 Desktop Chromium 與 Android Chrome 模擬，非實體手機。

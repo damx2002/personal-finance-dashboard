@@ -6,7 +6,7 @@ const guide={
  cashEmergency:['專門保留給收入中斷、醫療或突發事件的現金。','這筆錢預設計入生活現金緩衝。如果實際上不希望動用，可在進階設定取消勾選。'],
  cashInvestmentReserve:['等待投資機會使用的現金；預設不計入生活緩衝。','這筆錢仍屬於現金與金融資產，但用途是未來投資，因此預設不拿來計算失業時可以支撐多久。它會納入「投資池」做資產配置分析，但不會重複加入總資產。'],
  cashEarmarked:['已預計要花掉的現金，例如學費、旅遊、稅金、裝修或未來貸款還款。','若一筆現金已經有明確用途，可放在這裡。它仍屬於你的資產，但預設不計入生活緩衝，以免高估真正可以拿來應急的現金。'],
- income:['填全年家庭收入。稅前或稅後皆可，但之後請維持相同口徑。','系統會用家庭年收入 ÷ 12 作為「平均月收入」。如果包含年終、獎金、佣金或其他波動收入，債務月付比只代表全年平均，不代表每個月真的有相同收入。請避免同一筆獎金重複計入其他收入。'],
+ income:['優先填家庭全年實際可支配／實領收入。','系統會用家庭年收入 ÷ 12 作為平均月收入，並直接與生活支出、貸款還款及固定投資比較，因此優先使用真正可供家庭支配的實領收入。\n\n如果只能取得稅前年收入，也可以使用，但所得稅、勞健保或其他尚未扣除的必要支出，應換算後納入每月生活支出，避免高估現金流餘裕。\n\n如果收入包含年終、獎金、佣金或其他波動收入，債務月付比只代表全年平均，不代表每個月實際都有相同收入。'],
  living:['請填家庭平均每月生活成本；年度支出請先換算成每月平均。不要包含貸款還款與投資。','除了每月支出，也可將預期持續發生的年度支出攤入：保險費、學費、牌照稅／燃料費、汽車保養、房屋固定支出、固定旅遊預算、年度訂閱、固定醫療、家電／修繕預留等。\n計算：年度支出總額 ÷ 12，再加到每月生活支出。\n例如保險 120,000 + 學費 60,000 + 其他年度支出 60,000 = 240,000；÷ 12 = 每月增加 20,000。\n只有預期持續發生的家庭支出需要攤提；偶發且無法預期的重大事件，不需硬塞進生活費。'],
  monthlyInvestment:['每月主動投入投資的金額；它屬於可調整的資產累積，不是剛性生活支出。','用於財務目標未來值估算，也會從「固定投資後每月結餘」扣除。不放進現金緩衝的支出分母，因模型假設收入中斷時固定投資可以暫停或調整。'],
  home:['填目前合理可接受的房屋估值，不必追求非常精準。','用於總資產、淨資產及房屋淨值估算。可使用相對保守且可持續更新的估值口徑。市場壓力測試目前不會讓房價跟著股票市場下跌。'],
@@ -59,5 +59,9 @@ function render(){const d=state.data,r=C.decisionReferences(d),draft=dataValid?'
  renderConsistency('allocation-consistency',d);renderConsistency('allocation-review',d);
  const rows=C.goalTimeFlex(d,goalSettings.basis);ui('goal-flex-results').replaceChildren(...rows.map(row=>{const p=document.createElement('p');p.textContent=`${row.age} 歲：${row.required.kind==='zero'?'不計投資報酬亦可達標':requiredReturnText(row.required)}`;return p;}));if(!rows.length)ui('goal-flex-results').textContent='設定有效的未來目標年齡與目標金額後即可比較。';
 }
+const fillingGuide=ui('filling-guide');
+ui('open-filling-guide').addEventListener('click',()=>fillingGuide.showModal());
+ui('close-filling-guide').addEventListener('click',()=>fillingGuide.close());
+ui('start-from-guide').addEventListener('click',()=>{fillingGuide.close();openWizard(0);});
 window.addEventListener('finance-render',render);window.addEventListener('finance-cleared',()=>{input.value='';calc();});render();
 })();
