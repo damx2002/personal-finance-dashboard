@@ -40,20 +40,20 @@ function explainMetrics() {
   const debt=c.debtRatio===null?'目前總資產為零，無法計算負債 / 資產比例。':`目前總負債約占總資產 ${percent(c.debtRatio)}。`;
   addExplanation(row('負債 / 資產比例'),debt+'此指標需搭配房貸、收入穩定度與資產流動性一起判斷，不應單獨視為好或壞。目前未設定此項警戒線；固定還款會影響每月現金流，可先區分負債用途及可變現資產。',debt+'可搭配收入與資產流動性一起判斷。');
   const payment=c.paymentRatio===null?'目前月收入為零，無法計算比例；如仍有還款，可優先盤點現金來源。':`目前每月約有 ${percent(c.paymentRatio)} 的收入用於償還房貸與信貸。${c.paymentRatio>d.maxPaymentRatio/100?'高於':'距離'}你的警戒線 ${decimal.format(Math.abs(c.paymentRatio*100-d.maxPaymentRatio))} 個百分點。`;
-  const paymentRow=row('每月債務還款 / 月收入');
+  const paymentRow=row('債務月付 / 平均月收入');
   const paymentStatus=paymentRow?.querySelector('dd')?.classList.contains('danger')?'danger':paymentRow?.querySelector('dd')?.classList.contains('caution')?'caution':'';
-  addExplanation(paymentRow,payment+` 你的警戒線：${decimal.format(d.maxPaymentRatio)}%。固定債務支出占比愈高，每月可調整的現金流空間愈小，可優先檢視還款安排與必要支出。 `+personal,payment+' 可優先檢視固定還款安排。',paymentStatus);
-  addExplanation(row('投資用途負債 / 投資市值'),c.investmentDebtRatio===null?'目前沒有投資市值，無法計算借款占比；可先核對投資用途借款。':`目前投資資產中約 ${percent(c.investmentDebtRatio)} 是由借款支撐。市場下跌時，投資市值會下降，但貸款本金不會同步下降。此項未設定警戒線，可搭配綜合槓桿，優先檢視借款規模與還款來源。`,c.investmentDebtRatio===null?'目前無投資市值，暫不計算借款占比。':`約 ${percent(c.investmentDebtRatio)} 投資由借款支撐，下跌時貸款本金不會同步減少。`);
+  addExplanation(paymentRow,payment+` 你的警戒線：${decimal.format(d.maxPaymentRatio)}%。平均月收入以家庭年收入 ÷ 12 計算；若收入波動較大，此比例僅作年度平均參考。固定債務支出占比愈高，每月可調整的現金流空間愈小，可優先檢視還款安排與必要支出。 `+personal,payment+' 可優先檢視固定還款安排。',paymentStatus);
+  addExplanation(row('投資用途負債 / 投資市值'),c.investmentDebtRatio===null?'目前沒有投資市值，無法計算借款占比；可先核對投資用途借款。':`投資用途負債僅計實際投入股票 / ETF 的借款部分，不一定是整筆貸款。目前股票 / ETF 投資資產中約 ${percent(c.investmentDebtRatio)} 是由借款支撐。市場下跌時，投資市值會下降，但貸款本金不會同步下降。此項未設定警戒線，可搭配綜合槓桿，優先檢視借款規模與還款來源。`,c.investmentDebtRatio===null?'目前無投資市值，暫不計算借款占比。':`約 ${percent(c.investmentDebtRatio)} 投資由借款支撐，下跌時貸款本金不會同步減少。`);
   renderCompositions(d,c);
   renderMonthComparison();
 }
 function renderCompositions(d,c){
  const bufferCash=FinanceCore.cashKeys.map((key,i)=>[`${['日常可動用現金','緊急預備金','投資預備金','指定用途預留資金'][i]}（${d.bufferIncludes[key]?'計入':'不計入'}）`,d[key],key]);
  const spending=d.living+d.mortgagePayment+d.loanPayment;
- const sets=[['cashRunway','runway-composition',[...bufferCash,['生活緩衝現金小計',d.cashBuffer,'cashBuffer'],['每月生活支出',d.living,'living'],['每月房貸還款',d.mortgagePayment,'mortgagePayment'],['每月信貸 / 其他還款',d.loanPayment,'loanPayment'],['每月生活與債務支出小計',spending,'spending']],spending>0?`現金緩衝月數 = 生活緩衝現金 ÷ 每月生活與債務支出\n${decimal.format(c.runway)} 個月 = ${money(d.cashBuffer)} ÷ ${money(spending)}\n依進階設定勾選的現金分類計算；不包含每月固定投資。`:'目前每月生活與債務支出為 NT$ 0，無法計算緩衝月數。依進階設定勾選的現金分類計算；不包含每月固定投資。'],['financialAssets','financial-composition',[
- ['日常可動用現金',d.cashDaily,'cashDaily'],['緊急預備金',d.cashEmergency,'cashEmergency'],['投資預備金',d.cashInvestmentReserve,'cashInvestmentReserve'],['指定用途預留資金',d.cashEarmarked,'cashEarmarked'],['現金小計',d.cash,'cash'],['一般股票 / ETF',d.regular,'regular'],['槓桿 ETF',d.leveraged,'leveraged'],['投資資產小計',c.investment,'investment'],['金融資產',c.financial,'financial']
- ],`金融資產 = 現金小計 + 投資資產小計\n${money(c.financial)} = ${money(d.cash)} + ${money(c.investment)}`],['netWorth','net-composition',[
- ['現金',d.cash,'cash'],['投資資產',c.investment,'investment'],['房屋',d.home,'home'],['其他資產',d.other,'other'],['總資產',c.assets,'assets'],['減：房貸',d.mortgage,'mortgage'],['減：信貸 / 其他負債',d.loan,'loan'],['總負債',c.debt,'debt'],['淨資產',c.net,'net']
+ const sets=[['cashRunway','runway-composition',[...bufferCash,['生活緩衝現金小計',d.cashBuffer,'cashBuffer'],['每月生活支出',d.living,'living'],['每月房貸還款',d.mortgagePayment,'mortgagePayment'],['每月信貸 / 其他還款',d.loanPayment,'loanPayment'],['每月生活與債務支出小計',spending,'spending']],spending>0?`現金緩衝月數 = 生活緩衝現金 ÷ 每月生活與債務支出\n${decimal.format(c.runway)} 個月 = ${money(d.cashBuffer)} ÷ (${money(d.living)} + ${money(d.mortgagePayment+d.loanPayment)})\n現金緩衝假設收入中斷時會暫停固定投資，因此分母只包含生活支出與債務還款。依進階設定勾選現金分類。`:'目前每月生活與債務支出為 NT$ 0，無法計算緩衝月數。現金緩衝假設收入中斷時會暫停固定投資，因此分母只包含生活支出與債務還款。依進階設定勾選現金分類。'],['financialAssets','financial-composition',[
+ ['日常可動用現金',d.cashDaily,'cashDaily'],['緊急預備金',d.cashEmergency,'cashEmergency'],['投資預備金',d.cashInvestmentReserve,'cashInvestmentReserve'],['指定用途預留資金',d.cashEarmarked,'cashEarmarked'],['現金小計',d.cash,'cash'],['一般股票 / ETF',d.regular,'regular'],['槓桿 ETF',d.leveraged,'leveraged'],['股票 / ETF 投資資產小計',c.investment,'investment'],['金融資產',c.financial,'financial']
+ ],`金融資產 = 現金小計 + 股票 / ETF 投資資產小計\n${money(c.financial)} = ${money(d.cash)} + ${money(c.investment)}`],['netWorth','net-composition',[
+ ['現金',d.cash,'cash'],['股票 / ETF 投資資產',c.investment,'investment'],['房屋',d.home,'home'],['其他資產',d.other,'other'],['總資產',c.assets,'assets'],['減：房貸',d.mortgage,'mortgage'],['減：信貸 / 其他負債',d.loan,'loan'],['總負債',c.debt,'debt'],['淨資產',c.net,'net']
  ],`淨資產 = 總資產 − 總負債\n${money(c.net)} = ${money(c.assets)} − ${money(c.debt)}`]];
  for(const[id,detailId,rows,formula]of sets){const host=ui(id).closest('.kpi');let details=ui(detailId);if(!details){details=document.createElement('details');details.id=detailId;details.className='kpi-composition';const summary=document.createElement('summary');summary.textContent='ⓘ 查看組成與算法';details.append(summary,document.createElement('dl'),document.createElement('p'));host.insertBefore(details,host.querySelector('.metric-explanation'));}
  const dl=details.querySelector('dl');dl.replaceChildren(...rows.map(([label,value,part])=>{const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');row.dataset.part=part;row.dataset.value=value;dt.textContent=label;dd.textContent=money(value);row.append(dt,dd);return row;}));details.querySelector('p').textContent=formula;}
@@ -81,15 +81,15 @@ function summaryModel(snapshot, hide) {
   const rows=hide?[
     ['淨資產完成率',goal?percent(net/goal):s?unavailable:'未設定目標'],
     ['負債 / 資產',percent(assets>0?debt/assets:null)],
-    ['債務還款 / 月收入',s?unavailable:percent(c.paymentRatio)],
+    ['債務月付 / 平均月收入',s?unavailable:percent(c.paymentRatio)],
     ['現金緩衝月數',s?unavailable:c.runway===null?'—':`${decimal.format(c.runway)} 個月`],
     ['綜合市場槓桿',multiple(s?s.leverage:c.leverage)],
     ['財務目標完成率',goal?percent(g.completion):s?unavailable:'未設定目標']
   ]:[
     ['淨資產',money(net)],['金融資產',money(financial)],['總資產',money(assets)],['總負債',money(debt)],
     ['現金緩衝月數',s?unavailable:c.runway===null?'—':`${decimal.format(c.runway)} 個月`],
-    ['每月債務還款 / 月收入',s?unavailable:percent(c.paymentRatio)],
-    ['投資總市值',money(s?s.investment:c.investment)],['綜合市場槓桿',multiple(s?s.leverage:c.leverage)]
+    ['債務月付 / 平均月收入',s?unavailable:percent(c.paymentRatio)],
+    ['股票 / ETF 投資資產',money(s?s.investment:c.investment)],['綜合市場槓桿',multiple(s?s.leverage:c.leverage)]
   ];
   return {date,hide,demo:demoActive,snapshot:!!s,meta:s?null:{allocation:FinanceCore.allocation(state.data),required:g.required,goal:g,stressLabel:StressCore.label(stressSettings)},rows,goal:hide?[]:[[s?'目前金融資產':`目前${g.basisLabel}`,s?money(financial):money(g.currentGoalAssets)],[s?'目標金融資產':`目標${g.basisLabel}`,goal?money(goal):s?unavailable:'未設定'],['完成率',goal?percent(g.completion):s?unavailable:'—'],['目標年齡',s?unavailable:goal?`${d.targetAge} 歲`:'未設定']],stress:hide?[]:[20,30,50].map(drop=>[`大盤 −${drop}%`,s?unavailable:c.scenarios.find(r=>r.drop===drop).ok?money(c.scenarios.find(r=>r.drop===drop).net):'無有效示意路徑']),notes:s?['歷史快照未記錄現金流、目標與壓力情境，缺項標示未記錄。','總資產以快照淨資產加總負債還原，未混用目前資料。']:hide?['淨資產完成率 = 淨資產 ÷ 設定目標（另項參考）。',`財務目標以${g.basisLabel}為基準；現金不套用投資報酬。`]:['現金、目標與市場情境均依目前有效輸入估算。']};
 }
@@ -108,7 +108,7 @@ function drawSummary(model) {
   model.rows.forEach(([label,value],i)=>{const x=60+(i%cols)*(w+gap),y=start+Math.floor(i/cols)*(h+14);box(x,y,w,h);text(label,x+22,y+36,23,palette.muted);text(value,x+22,y+(model.hide?106:83),model.hide?44:34,palette.text,650,w-44);});
   let y=model.hide?835:760;
   if(!model.hide){
-    text('財務目標',60,y,27,palette.accent,650);y+=24;box(60,y,960,154);
+    text(model.meta?model.meta.goal.basisLabel+'目標':'財務目標',60,y,27,palette.accent,650);y+=24;box(60,y,960,154);
     model.goal.forEach(([label,value],i)=>{const x=85+(i%2)*480,cy=y+36+Math.floor(i/2)*65;text(label,x,cy,21,palette.muted);text(value,x+225,cy,24,palette.text,600,220);});
     y+=200;text('市場壓力摘要 · 整體淨資產'+(model.meta?' · '+model.meta.stressLabel:''),60,y,23,palette.accent,650,960);y+=20;
     model.stress.forEach(([label,value],i)=>{box(60+i*325,y,310,100);text(label,80+i*325,y+32,22,palette.muted);text(value,80+i*325,y+76,28,palette.text,650,270);});

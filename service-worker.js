@@ -1,6 +1,6 @@
 'use strict';
 // build-single.py updates RELEASE from the static shell content hash.
-const RELEASE='v41-9f52e79b25b8b5e0';
+const RELEASE='v41-84ec5d1b1b1cfceb';
 const scope=new URL('./',self.location.href);
 const PREFIX='finance-static-'+encodeURIComponent(scope.pathname)+'-';
 const VERSION=PREFIX+RELEASE;

@@ -94,6 +94,7 @@ function renderGoal(d) {
     value.textContent = result && d.targetAge>d.currentAge ? money(result.projected) : '請設定未來目標'; card.append(title, value); return card;
   }));
   const goal = calculateGoal(d), g=HealthAnalysis.goal(d,new Date().getFullYear(),goalSettings.basis);
+  ui('goals-title').textContent=goalSettings.basis==='financial'?'金融資產目標':'投資資產目標';
   syncGoalControls();ui('goal-settings-message').textContent=goalSettingsError;ui('wizard-goal-settings-message').textContent=goalSettingsError;
   ui('goal-basis-description').textContent=goalSettings.basis==='investment'?'本目標以一般股票 / ETF 與槓桿 ETF 市值為起點，現金不納入投資報酬試算。':'金融資產包含現金與股票 / ETF；未來預估中，現金暫以0%報酬計算，投資資產依設定報酬率成長。';
   ui('goal-time').textContent=g.label;
@@ -165,11 +166,11 @@ function render(d) {
   renderRows('health', [
     ['總資產', money(c.assets)], ['總負債', money(c.debt)],
     ['負債 / 資產比例', percent(c.debtRatio), debtRisk],
-    ['每月債務還款 / 月收入', percent(c.paymentRatio), paymentRisk],
-    ['每月結餘（含固定投資）', money(c.balance), c.balance < 0 ? 'danger' : '']
+    ['債務月付 / 平均月收入', percent(c.paymentRatio), paymentRisk],
+    ['平均每月結餘（扣固定投資後）', money(c.balance), c.balance < 0 ? 'danger' : '']
   ]);
   renderRows('investment', [
-    ['投資總市值', money(c.investment)], ['投資用途負債',money(d.investmentDebt)], ['投資等效市場曝險', money(c.exposure)],
+    ['股票 / ETF 投資資產', money(c.investment)], ['投資用途負債',money(d.investmentDebt)], ['投資等效市場曝險', money(c.exposure)],
     ['投資內含曝險倍數', multiple(c.embedded)], ['投資用途負債 / 投資市值', percent(c.investmentDebtRatio)],
     ['投資淨值', money(c.equity), c.equity < 0 ? 'danger' : '']
   ]);
@@ -229,7 +230,7 @@ function update(event){
   if(event?.target?.matches('[data-field]')&&!state.provided.includes(event.target.name))state.provided.push(event.target.name);
   if(event?.target?.matches('[data-buffer]')&&!state.provided.includes('bufferIncludes'))state.provided.push('bufferIncludes');
   render(data);persist();renderV3();
- }catch(e){dataValid=false;state.draft=getDraft();ui('wizard-error').hidden=false;ui('wizard-error').textContent=e.message;persist();}
+ }catch(e){dataValid=false;state.draft=getDraft();ui('wizard-error').hidden=false;ui('wizard-error').textContent=e.message;persist();renderAnalysisStatus();}
 }
 for(const id of ['finance-form','goal-form','settings-form']){ui(id).addEventListener('input',update);ui(id).addEventListener('change',event=>{if(event.target.matches('select,[data-buffer]'))update(event);});ui(id).addEventListener('submit',e=>e.preventDefault());}
 function commit(next){if(demoActive)exitDemo(false);state=validateEnvelope(next);readBlocked=false;paint();persist();}
@@ -293,14 +294,14 @@ function renderDebtEditor(rows=state.draft?.debts||state.data.debts){
   const box=document.createElement('section');box.className='debt-row';box.dataset.id=item.id;
   const header=document.createElement('div');header.className='section-heading';const title=document.createElement('h4');title.textContent=`負債 ${index+1}`;const remove=document.createElement('button');remove.type='button';remove.textContent='移除此筆';remove.addEventListener('click',()=>{if(!confirm('移除此筆負債？'))return;box.remove();for(let i=amountFields.length-1;i>=0;i--)if(!amountFields[i].isConnected)amountFields.splice(i,1);update();});header.append(title,remove);box.append(header);
   const grid=document.createElement('div');grid.className='wizard-grid';
-  const definitions=[['name','負債名稱','text','選填','如房貸、將來銀行信貸或車貸。'],['type','負債類型','select','必要','依借款實際類型選擇。'],['balance','目前餘額','amount','必要','尚未償還的本金。'],['annualRate','年利率（%）','number','選填','未知可留白；不會猜測利率。'],['monthlyPayment','每月還款','amount','必要','實際每月固定償還金額。'],['remainingMonths','剩餘月數','number','選填','未知可留白。'],['investmentAmount','投資用途金額','amount','選填','只有實際投入股票、ETF 等投資的借款才計入。']];
+  const definitions=[['name','負債名稱','text','選填','如房貸、將來銀行信貸或車貸。'],['type','負債類型','select','必要','依借款實際類型選擇。'],['balance','目前餘額','amount','必要','尚未償還的本金。'],['annualRate','年利率（%）','number','選填','未知可留白；不會猜測利率。'],['monthlyPayment','每月還款','amount','必要','實際每月固定償還金額。'],['remainingMonths','剩餘月數','number','選填','未知可留白。'],['investmentAmount','其中已投入投資的借款本金','amount','選填','如果一筆信貸只有部分資金實際投入股票 / ETF，只填實際投入的部分。']];
   for(const [key,label,type,level,help]of definitions){const wrapper=document.createElement('label');wrapper.append(document.createTextNode(label+' '));const badge=document.createElement('span');badge.className='field-level';badge.textContent=level;wrapper.append(badge);let el;
    if(type==='select'){el=document.createElement('select');for(const[value,text]of [['mortgage','房貸'],['personalLoan','信貸'],['car','車貸'],['revolving','卡循'],['other','其他']]){const option=document.createElement('option');option.value=value;option.textContent=text;el.append(option);}}
    else{el=document.createElement('input');el.type=type==='amount'?'text':type;el.inputMode=type==='text'?'text':'decimal';el.min='0';el.step=key==='remainingMonths'?'1':'any';if(key==='annualRate')el.max='100';if(key==='remainingMonths')el.max='1200';if(key==='name')el.maxLength=80;}
    el.dataset.debtField=key;el.name=`debt-${item.id}-${key}`;el.value=item[key]===null||item[key]===undefined?'':item[key];wrapper.append(el);grid.append(wrapper);if(type==='amount')wireDebtAmount(el);
    const small=document.createElement('small');small.className='field-helper';small.textContent=help;wrapper.append(small);
   }
-  const info=document.createElement('details');info.className='inline-info';const summary=document.createElement('summary');summary.textContent='ⓘ 投資用途金額如何計算？';const text=document.createElement('p');text.textContent='投資用途金額只是該筆負債的一部分，不會再次加入總負債。必須介於 0 與該筆餘額之間。';info.append(summary,text);box.append(grid,info);ui('debt-editor').append(box);
+  const info=document.createElement('details');info.className='inline-info';const summary=document.createElement('summary');summary.textContent='ⓘ 投資用途金額如何計算？';const text=document.createElement('p');text.textContent='投資用途負債指其中已投入投資的借款本金，只是該筆負債的一部分，不會再次加入總負債。必須介於 0 與該筆餘額之間。';info.append(summary,text);box.append(grid,info);ui('debt-editor').append(box);
  });for(const field of amountFields)if(field.isConnected)formatAmountField(field);refreshAmountHints();
 }
 function showWizardStep(step){
@@ -329,18 +330,22 @@ function renderV3(){
  renderRows('debt-analysis',[['總負債',money(debt.total)],['每月總還款',money(debt.payments)],['投資用途負債',money(debt.investmentDebt)],['加權平均利率',debt.total===0?'無負債':debt.weightedRate===null?'填寫貸款利率後即可估算。':`${decimal.format(debt.weightedRate)}%`],['粗估一年利息成本',debt.interest===null?'填寫貸款利率後即可估算。':money(debt.interest)]]);
  ui('rebalance-note').textContent=alloc.kind==='valid'?`如果完全不賣既有部位，約需新增 ${money(alloc.additionalCapitalRequired)} 才能回到目標配置。`:alloc.kind==='impossible'?'此目標無法單靠新增資金完全達成，因為目前仍持有目標配置為 0% 的資產。':alloc.kind==='invalid'?'目標配置合計需為 100%。':alloc.kind==='aboveRange'?'目標比例過小，超出可估算範圍，請檢視目標配置。':'先於進階設定填寫三類目標配置。';
  renderRows('rebalance-additions',alloc.kind==='valid'?labels.map((label,i)=>[`${label}需新增`,money(alloc.additions[i])]):[]);
- renderRows('monthly-allocation',alloc.monthly?labels.map((label,i)=>[label,money(alloc.monthly[i])]):[]);
- const basic=['cashDaily','cashEmergency','cashInvestmentReserve','cashEarmarked','income','living','monthlyInvestment','regular'],goal=['currentAge','targetAge','targetAssets','annualReturn','monthlyInvestment'];const basicCount=basic.filter(k=>state.provided.includes(k)).length,goalCount=goal.filter(k=>state.provided.includes(k)&&(k!=='targetAssets'||d[k]>0)&&(k!=='targetAge'||d[k]>d.currentAge)).length,advanced=[state.provided.includes('minRunway'),state.provided.includes('maxPaymentRatio'),state.provided.includes('maxLeverage'),alloc.valid].filter(Boolean).length;
- ui('completeness').replaceChildren();for(const text of [`基本資料 ${basicCount} / 8`,`目標設定 ${goalCount} / 5`,`進階設定 ${advanced} / 4`,`再補 ${8-basicCount+5-goalCount+4-advanced} 項，可看到更完整分析。選填項目可稍後補充。`]){const p=document.createElement('p');p.textContent=text;ui('completeness').append(p);}
+ renderRows('monthly-allocation',alloc.monthly?labels.map((label,i)=>[label,`NT$ ${decimal.format(alloc.monthly[i])}`]):[]);
+ renderAnalysisStatus();
+}
+function renderAnalysisStatus(){
+ const result=HealthAnalysis.analysisStatus(state.data,{draft:state.draft,readBlocked,basis:goalSettings.basis}),host=ui('completeness');host.replaceChildren();
+ ui('analysis-status-summary').textContent='資料與分析狀態 · '+(result.count?`有 ${result.count} 項可補強`:'主要分析已可使用');
+ function list(items){const ul=document.createElement('ul');ul.className='analysis-status-items';for(const item of items){const li=document.createElement('li'),p=document.createElement('p'),b=document.createElement('button');li.dataset.statusId=item.id;p.textContent=item.text;b.type='button';b.textContent='去補資料';b.addEventListener('click',()=>{openWizard(item.step);const target=item.debtId?[...ui('debt-editor').querySelectorAll('.debt-row')].find(row=>row.dataset.id===item.debtId)?.querySelector(`[data-debt-field="${item.focus}"]`):fields.find(field=>field.name===item.focus);if(target){target.scrollIntoView({block:'center'});target.focus({preventScroll:true});}});li.append(p,b);ul.append(li);}return ul;}
+ for(const[key,title]of [['core','核心財務分析'],['goal','財務目標']]){const section=document.createElement('section'),h=document.createElement('h3'),p=document.createElement('p');section.dataset.analysisGroup=key;h.textContent=(result[key].ready?'✓ ':'△ ')+title;p.textContent=result[key].text;section.append(h,p,list(result[key].issues));host.append(section);}
+ const section=document.createElement('section'),h=document.createElement('h3');h.textContent='進階分析 · 可補強';section.append(h);if(result.advanced.length)section.append(list(result.advanced));else{const p=document.createElement('p');p.textContent=result.count?'目前沒有額外的進階分析補強項目。':'目前主要分析所需資料已齊全。';section.append(p);}host.append(section);
 }
 ui('edit-finances').addEventListener('click',()=>openWizard(0));ui('mobile-edit').addEventListener('click',()=>openWizard(0));ui('start-setup').addEventListener('click',()=>openWizard(0));ui('demo-start').addEventListener('click',enterDemo);ui('demo-exit').addEventListener('click',()=>exitDemo(true));document.querySelectorAll('[data-open-step]').forEach(button=>button.addEventListener('click',()=>openWizard(Number(button.dataset.openStep))));
 ui('close-wizard').addEventListener('click',closeWizard);ui('wizard').addEventListener('cancel',e=>{e.preventDefault();closeWizard();});ui('wizard').addEventListener('close',()=>renderV3());
 ui('wizard-back').addEventListener('click',()=>{showWizardStep(state.wizardStep-1);persist(false);});
 ui('wizard-next').addEventListener('click',()=>{
  if(!dataValid){ui('wizard-error').hidden=false;return;}
- const required=state.wizardStep===0?['cashDaily','income','living','monthlyInvestment']:state.wizardStep===1?['regular']:[];
- const missing=required.find(name=>fields.find(f=>f.name===name).value.trim()==='');if(missing){ui('wizard-error').hidden=false;ui('wizard-error').textContent='必要欄位請填寫金額，沒有也可以填 0。';fields.find(f=>f.name===missing).focus();return;}
- if(state.wizardStep===2){const a=FinanceCore.allocation(state.data);if(a.weights.some(v=>v!==null)&&!a.valid){ui('wizard-error').hidden=false;ui('wizard-error').textContent='目標配置合計需為 100%。';return;}closeWizard();return;}
+ if(state.wizardStep===2){const a=FinanceCore.allocation(state.data);if(a.weights.some(v=>v!==null)&&!a.valid){ui('wizard-error').hidden=false;ui('wizard-error').textContent='目標配置合計需為 100%。';return;}persist();closeWizard();return;}
  showWizardStep(state.wizardStep+1);persist(false);
 });
 ui('add-debt').addEventListener('click',()=>{const rows=debtDraftRows();if(rows.length>=100){ui('wizard-error').hidden=false;ui('wizard-error').textContent='最多 100 筆負債。';return;}rows.push({id:crypto.randomUUID?crypto.randomUUID():`debt-${Date.now()}-${Math.random().toString(36).slice(2)}`,name:'',type:'personalLoan',balance:0,annualRate:null,monthlyPayment:0,remainingMonths:null,investmentAmount:0});renderDebtEditor(rows);update();});

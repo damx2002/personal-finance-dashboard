@@ -1,10 +1,12 @@
-# Personal Finance Dashboard V4.1
+# Personal Finance Dashboard V4.1.1
 
 繁體中文、免費、免登入的個人財務儀表板。保留 Light / Dark、localStorage、財務摘要 PNG、快照趨勢、壓力測試與 JSON 備份；新增財務決策實驗室、相同月現金流的借款投資比較、獨立情境保存與 PWA 離線能力。
 
 **所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。**
 
 清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。沒有帳號、資料庫、第三方追蹤、分析或外部 API。程式使用 CSP `connect-src 'none'` 與 `form-action 'none'`，僅載入本地靜態資源。
+
+[V4.1.1 邏輯精煉、分析狀態與再平衡修正](V4.1.1.md)
 
 [V4.1 目標基準與 KPI 組成修正](GOAL-BASIS.md)
 
@@ -52,6 +54,8 @@ node tests/health-analysis.cjs
 node tests/insight-browser.cjs
 node tests/goal-basis.cjs
 node tests/goal-basis-browser.cjs
+node tests/refinements.cjs
+node tests/refinements-browser.cjs
 ```
 
 瀏覽器測試需要開發機安裝 Playwright 與 Chromium；使用者直接開網頁不需要安裝。可用 `CHROMIUM_PATH` 指定瀏覽器。測試涵蓋 Desktop Chromium 與 Android Chrome 模擬，非實體手機。

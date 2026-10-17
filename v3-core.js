@@ -75,8 +75,9 @@ function allocation(d){
  const finalTotal=Math.max(total,...current.map((x,i)=>w[i]>0?x/w[i]:0));
  if(!Number.isFinite(finalTotal))return {...result,kind:'aboveRange'};
  const additions=current.map((x,i)=>Math.max(0,w[i]*finalTotal-x));
- // Current-pool deficits exclude already-overweight classes. At target (or empty), new funds follow target weights.
- const gaps=current.map((x,i)=>Math.max(0,w[i]*total-x)),gapTotal=gaps.reduce((a,b)=>a+b,0);
+ // Monthly flows use the target pool AFTER this contribution; no-sale capital analysis above is independent.
+ const postContributionTotal=total+d.monthlyInvestment;
+ const gaps=current.map((x,i)=>Math.max(0,w[i]*postContributionTotal-x)),gapTotal=gaps.reduce((a,b)=>a+b,0);
  const proportions=gapTotal>1e-8?gaps.map(x=>x/gapTotal):w;
  const cents=Math.round(d.monthlyInvestment*100),raw=proportions.map(x=>x*cents),units=raw.map(Math.floor);let remaining=cents-units.reduce((a,b)=>a+b,0);
  const order=raw.map((x,i)=>({i,remainder:x-units[i]})).sort((a,b)=>b.remainder-a.remainder);
