@@ -52,13 +52,15 @@ body:has(#ai-dialog[open]) #mobile-edit{display:none}
 .guide-heading{margin-bottom:20px}.guide-heading .hint{margin-top:8px!important}.guide-content{display:grid;gap:18px}.guide-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}#filling-guide button,.header-actions button{min-height:44px}
 body:has(#filling-guide[open]) #mobile-edit{display:none}
 @media(max-width:640px){#filling-guide{width:100%;max-width:100%;height:100dvh;max-height:100dvh;margin:0;padding:24px 18px calc(24px + env(safe-area-inset-bottom));border-radius:0}.guide-actions{flex-direction:column}.header-actions{justify-content:flex-start}}
+
+#pwa-install-help{flex-basis:100%;max-width:48ch;margin:0;line-height:1.8;overflow-wrap:anywhere}
 </style></head>
 <body><main>
 <header><div><p class="eyebrow">MY FINANCE · 我的財務全貌</p><h1>個人財務儀表板</h1><p class="subtitle">掌握現在，為未來留一點餘裕。</p></div><div class="save-info"><div class="header-actions"><button type="button" id="edit-finances" class="primary-button">編輯財務資料</button><button type="button" id="open-filling-guide" aria-haspopup="dialog" aria-controls="filling-guide">？填寫指南</button></div><div class="theme-switch" role="group" aria-label="外觀模式"><button type="button" data-theme-choice="light" aria-pressed="true">☀ Light</button><button type="button" data-theme-choice="dark" aria-pressed="false">☾ Dark</button></div><small id="theme-status" role="status" hidden></small><span id="save-status" role="status">尚未輸入資料</span><small id="saved-at">最後儲存：—</small></div></header><p class="privacy-note">所有財務資料僅儲存在此裝置瀏覽器，不會上傳至伺服器。<br>清除瀏覽器資料、更換裝置或使用無痕模式可能造成資料遺失，建議定期匯出備份。</p><p id="storage-warning" class="warning" role="alert" hidden></p>
 <section id="welcome" class="panel welcome" hidden><p class="eyebrow">PERSONAL FINANCE · V4.1.2</p><h2>建立你的財務全貌</h2><p>約 2～3 分鐘完成基本設定。<br>填入資產、負債與每月現金流後，即可看到你的淨資產、現金緩衝、債務壓力、投資槓桿與財務目標。</p><div class="toolbar"><button id="start-setup" type="button" class="primary-button">開始設定</button><button id="demo-start" type="button">先用範例資料看看</button></div><p class="hint">已有備份？可在下方「資料備份」匯入，不需重新填寫。</p></section>
 <div id="demo-banner" class="note demo-banner" hidden>目前為範例資料，修改不會存成正式資料。<button id="demo-exit" type="button">開始輸入我的資料</button></div>
 <div id="pwa-update" class="note pwa-update" hidden><span>有新版可用。請先儲存尚未完成的情境。</span><button id="pwa-reload" type="button">重新載入更新</button></div><p id="pwa-status" class="hint" role="status"></p>
-<div id="dashboard"><section class="panel lab-entry"><div><h2>財務決策實驗室</h2><p>先試算，再決定。</p><small>在不修改正式資料的情況下，先看看不同財務決策可能造成什麼變化。</small></div><div class="toolbar"><button id="open-lab" type="button" class="primary-button">開始試算</button><button id="pwa-install" type="button">安裝／新增到主畫面</button></div></section><section class="kpis" aria-label="財務摘要">
+<div id="dashboard"><section class="panel lab-entry"><div><h2>財務決策實驗室</h2><p>先試算，再決定。</p><small>在不修改正式資料的情況下，先看看不同財務決策可能造成什麼變化。</small></div><div class="toolbar"><button id="open-lab" type="button" class="primary-button">開始試算</button><button id="pwa-install" type="button" aria-describedby="pwa-install-help">安裝／新增到主畫面</button><p id="pwa-install-help" class="hint" role="status" hidden></p></div></section><section class="kpis" aria-label="財務摘要">
 <article class="kpi"><span>淨資產</span><strong id="netWorth">—</strong><small>總資產扣除所有負債</small></article>
 <article class="kpi"><span>金融資產</span><strong id="financialAssets">—</strong><small>現金與股票 / ETF 市值</small></article>
 <article class="kpi"><span>現金緩衝月數</span><strong id="cashRunway">—</strong><small>可支應生活費與債務還款</small></article>
@@ -1109,7 +1111,15 @@ window.hasUnsavedScenario=()=>Lab.dirty;
  let installEvent=null,registration=null,requestedUpdate=false;
  const status=document.getElementById('pwa-status');
  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installEvent=event;});
- document.getElementById('pwa-install').addEventListener('click',async()=>{if(installEvent){const pending=installEvent;installEvent=null;await pending.prompt();const result=await pending.userChoice;status.textContent=result.outcome==='accepted'?'已接受安裝；安裝狀態以瀏覽器顯示為準。':'已取消安裝，可稍後再試。';}else status.textContent='Android Chrome 可從右上角 ⋮ 選「新增到主畫面」或「安裝應用程式」。請使用 HTTPS 網址，並先讓離線資源準備完成。';});
+ const installHelp=document.getElementById('pwa-install-help');
+ const showInstallHelp=text=>{installHelp.textContent=text;installHelp.hidden=false;};
+ document.getElementById('pwa-install').addEventListener('click',async()=>{
+  const isAppleMobile=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches){showInstallHelp('目前已從主畫面 App 開啟，無需再次新增。');return;}
+  if(isAppleMobile){showInstallHelp('iPhone／iPad：請用 Safari 開啟此網站 → 點「分享」（方框向上箭頭）→「加入主畫面」→「新增」。若有「作為網頁 App 開啟」，請保持開啟。iPhone 需要從分享選單手動新增，這個按鈕不會直接跳出安裝視窗。');return;}
+  if(installEvent){const pending=installEvent;installEvent=null;await pending.prompt();const result=await pending.userChoice;showInstallHelp(result.outcome==='accepted'?'已接受安裝；安裝狀態以瀏覽器顯示為準。':'已取消安裝，可稍後再試。');}
+  else showInstallHelp('Android Chrome：右上角 ⋮ →「新增到主畫面」或「安裝應用程式」。iPhone／iPad：Safari →「分享」→「加入主畫面」。電腦可查看網址列的安裝圖示或瀏覽器選單。請使用 HTTPS 網址，並先讓離線資源準備完成。');
+ });
  if(!('serviceWorker'in navigator)||!['https:','http:'].includes(location.protocol)||!window.isSecureContext){status.textContent='PWA 安裝與離線功能需要固定 HTTPS 網址；目前本機財務功能仍可使用。';return;}
  const showUpdate=()=>{if(registration?.waiting&&navigator.serviceWorker.controller)document.getElementById('pwa-update').hidden=false;};
  document.getElementById('pwa-reload').addEventListener('click',()=>{if(!registration?.waiting)return;if(window.hasUnsavedScenario?.()&&!confirm('尚有未儲存的情境變動。更新會重新載入頁面，確定繼續？'))return;requestedUpdate=true;registration.waiting.postMessage({type:'SKIP_WAITING'});});

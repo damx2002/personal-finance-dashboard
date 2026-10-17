@@ -51,6 +51,7 @@ node tests/appearance.cjs
 node tests/scenario-core.cjs
 node tests/scenario-browser.cjs
 node tests/pwa.cjs
+node tests/pwa-install.cjs
 node tests/stress-core.cjs
 node tests/health-analysis.cjs
 node tests/insight-browser.cjs
@@ -74,3 +75,5 @@ GitHub **Settings → Pages → Deploy from a branch → main → /(root) → Sa
 正式財務仍是 V3 格式，沒有 V4 財務 schema migration。情境存於獨立 `personal-finance-dashboard.scenarios.v4`，最多20筆，只存動作，不存基準。試算沒有套用正式資料的功能。JSON 備份可選擇包含情境。
 
 PWA 首次須連線並等離線資源準備完成，再用 Android Chrome 安裝／新增到主畫面。快取只有靜態程式，財務資料仍在 localStorage。新版本等待使用者按「重新載入更新」，不會在輸入中自動重載。每次修改靜態檔都必須執行 `python scripts/build-single.py`，同步單檔版與 service worker 內容版本。
+
+iPhone／iPad 加入主畫面：用 Safari 開啟網站，點「分享」→「加入主畫面」→「新增」。網站的「安裝／新增到主畫面」會在按鈕下方顯示步驟；iOS 不會由網站按鈕直接跳出安裝視窗。已從主畫面開啟時則提示無需重複新增。
